@@ -14,24 +14,27 @@
   limitations under the License.
 */
 
-#ifndef PEOPLE_DETECTION_NODE_HPP_
-#define PEOPLE_DETECTION_NODE_HPP_
+#ifndef FOLLOW_PERSON_NODE_HPP_
+#define FOLLOW_PERSON_NODE_HPP_
 
 #include "rclcpp/rclcpp.hpp"
 #include "yolov8_msgs/msg/detection_array.hpp"
 #include "lifecycle_msgs/msg/state.hpp"
 #include "rclcpp_lifecycle/lifecycle_node.hpp"
+#include "tf2_ros/static_transform_broadcaster.h"
+#include "geometry_msgs/msg/transform_stamped.hpp"
+#include "visualization_msgs/msg/marker_array.hpp"
 
-namespace perception
+namespace perception_system
 {
 
 using CallbackReturnT =
   rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 
-class PeopleDetectionNode : public rclcpp_lifecycle::LifecycleNode
+class FollowPersonNode : public rclcpp_lifecycle::LifecycleNode
 {
 public:
-  PeopleDetectionNode();
+  FollowPersonNode();
 
   CallbackReturnT on_configure(const rclcpp_lifecycle::State & state);
   CallbackReturnT on_activate(const rclcpp_lifecycle::State & state);
@@ -44,9 +47,14 @@ private:
   void callback(const yolov8_msgs::msg::DetectionArray::ConstSharedPtr & msg);
 
   rclcpp::Subscription<yolov8_msgs::msg::DetectionArray>::SharedPtr sub_;
-  rclcpp_lifecycle::LifecyclePublisher<yolov8_msgs::msg::DetectionArray>::SharedPtr pub_;
+  std::shared_ptr<tf2_ros::StaticTransformBroadcaster> tf_broadcaster_;
+  geometry_msgs::msg::TransformStamped static_transform_stamped_;
+  rclcpp_lifecycle::LifecyclePublisher<visualization_msgs::msg::MarkerArray>::SharedPtr markers_pub_;
+
+  std::string frame_id_;
+  bool debug_;
 };
 
-}  // namespace perception
+}  // namespace perception_system
 
-#endif  // PEOPLE_DETECTION_NODE_HPP_
+#endif  // FOLLOW_PERSON_NODE_HPP_

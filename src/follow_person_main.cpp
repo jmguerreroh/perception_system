@@ -14,13 +14,13 @@
   limitations under the License.
 */
 
-#include "perception/FollowPersonNode.hpp"
+#include "perception_system/FollowPersonNode.hpp"
 
 int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
 
-  auto cv_node = std::make_shared<perception::FollowPersonNode>();
+  auto cv_node = std::make_shared<perception_system::FollowPersonNode>();
 
   rclcpp::spin(cv_node->get_node_base_interface());
 

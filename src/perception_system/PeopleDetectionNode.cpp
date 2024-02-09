@@ -14,9 +14,9 @@
   limitations under the License.
 */
 
-#include "perception/PeopleDetectionNode.hpp"
+#include "perception_system/PeopleDetectionNode.hpp"
 
-namespace perception
+namespace perception_system
 {
 
 PeopleDetectionNode::PeopleDetectionNode()
@@ -29,7 +29,7 @@ CallbackReturnT PeopleDetectionNode::on_configure(const rclcpp_lifecycle::State 
     state.label().c_str());
 
   pub_ = this->create_publisher<yolov8_msgs::msg::DetectionArray>(
-    "/perception/people_detection", 10);
+    "/perception_system/people_detection", 10);
 
   return CallbackReturnT::SUCCESS;
 }
@@ -107,4 +107,4 @@ void PeopleDetectionNode::callback(
   }
 }
 
-}  // namespace perception
+}  // namespace perception_system

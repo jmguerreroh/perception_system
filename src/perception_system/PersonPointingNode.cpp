@@ -14,11 +14,11 @@
   limitations under the License.
 */
 
-#include "perception/PersonPointingNode.hpp"
+#include "perception_system/PersonPointingNode.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 
-namespace perception
+namespace perception_system
 {
 
 PersonPointingNode::PersonPointingNode()
@@ -34,7 +34,7 @@ CallbackReturnT PersonPointingNode::on_configure(const rclcpp_lifecycle::State &
   this->get_parameter("debug", debug_);
 
   pub_ = this->create_publisher<std_msgs::msg::UInt8>(
-    "/perception/person_pointing", 10);
+    "/perception_system/person_pointing", 10);
 
   return CallbackReturnT::SUCCESS;
 }
@@ -46,7 +46,7 @@ CallbackReturnT PersonPointingNode::on_activate(const rclcpp_lifecycle::State & 
     state.label().c_str());
 
   sub_ = this->create_subscription<yolov8_msgs::msg::DetectionArray>(
-    "/perception/people_detection", 10,
+    "/perception_system/people_detection", 10,
     [this](yolov8_msgs::msg::DetectionArray::ConstSharedPtr msg) {return this->callback(msg);});
 
   pub_->on_activate();
@@ -250,4 +250,4 @@ void PersonPointingNode::callback(
   pub_->publish(dir);
 }
 
-}  // namespace perception
+}  // namespace perception_system

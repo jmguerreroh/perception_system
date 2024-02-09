@@ -25,12 +25,12 @@ from launch_ros.actions import Node
 
 
 def generate_launch_description():
-  perception_dir = get_package_share_directory('perception')
+  perception_system_dir = get_package_share_directory('perception_system')
   yolo_dir = get_package_share_directory('yolov8_bringup')
   
   model = LaunchConfiguration("model")
   model_arg = DeclareLaunchArgument(
-    'model', default_value=os.path.join(perception_dir, 'models', 'yolov8m.pt'), description='Model name or path')
+    'model', default_value=os.path.join(perception_system_dir, 'models', 'yolov8m.pt'), description='Model name or path')
   
   target_frame = LaunchConfiguration("target_frame")
   target_frame_arg = DeclareLaunchArgument(
@@ -71,16 +71,16 @@ def generate_launch_description():
   )
 
   people_detection_node = Node(
-    package='perception',
-    namespace='perception',
+    package='perception_system',
+    namespace='perception_system',
     executable='dt_people',
     output='both',
     emulate_tty=True,
   )
 
   objects_detection_node = Node(
-    package='perception',
-    namespace='perception',
+    package='perception_system',
+    namespace='perception_system',
     executable='dt_objects',
     output='both',
     emulate_tty=True,
@@ -92,8 +92,8 @@ def generate_launch_description():
   )    
   
   pointing_detection_node = Node(
-    package='perception',
-    namespace='perception',
+    package='perception_system',
+    namespace='perception_system',
     executable='dt_pointing',
     output='both',
     emulate_tty=True,
@@ -103,8 +103,8 @@ def generate_launch_description():
   )
 
   follow_person_node = Node(
-    package='perception',
-    namespace='perception',
+    package='perception_system',
+    namespace='perception_system',
     executable='dt_follow',
     output='both',
     emulate_tty=True,

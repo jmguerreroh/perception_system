@@ -23,7 +23,7 @@
 #include "rclcpp_lifecycle/lifecycle_node.hpp"
 #include "std_msgs/msg/u_int8.hpp"
 
-namespace perception
+namespace perception_system
 {
 
 using CallbackReturnT =
@@ -50,6 +50,6 @@ private:
   bool debug_;
 };
 
-}  // namespace perception
+}  // namespace perception_system
 
 #endif  // PERSON_POINTING_NODE_HPP_

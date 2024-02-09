@@ -14,9 +14,9 @@
   limitations under the License.
 */
 
-#include "perception/ObjectsDetectionNode.hpp"
+#include "perception_system/ObjectsDetectionNode.hpp"
 
-namespace perception
+namespace perception_system
 {
 
 ObjectsDetectionNode::ObjectsDetectionNode()
@@ -36,10 +36,10 @@ CallbackReturnT ObjectsDetectionNode::on_configure(const rclcpp_lifecycle::State
   this->get_parameter("target_frame", frame_id_);
 
   pub_ = this->create_publisher<yolov8_msgs::msg::DetectionArray>(
-    "/perception/objects_detection", 10);
+    "/perception_system/objects_detection", 10);
 
   markers_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>(
-    "/perception/bb_objects", 10);
+    "/perception_system/bb_objects", 10);
 
   return CallbackReturnT::SUCCESS;
 }
@@ -121,7 +121,7 @@ void ObjectsDetectionNode::callback(
         visualization_msgs::msg::Marker marker;
         marker.header.frame_id = frame_id_;
         marker.header.stamp = msg->header.stamp;
-        marker.ns = "perception";
+        marker.ns = "perception_system";
         marker.id = stoi(detection.id);
         marker.text = detection.class_name;
         marker.frame_locked = false;
@@ -155,4 +155,4 @@ void ObjectsDetectionNode::callback(
   }
 }
 
-}  // namespace perception
+}  // namespace perception_system

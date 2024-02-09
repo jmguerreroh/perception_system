@@ -14,13 +14,13 @@
   limitations under the License.
 */
 
-#include "perception/PersonPointingNode.hpp"
+#include "perception_system/PersonPointingNode.hpp"
 
 int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
 
-  auto cv_node = std::make_shared<perception::PersonPointingNode>();
+  auto cv_node = std::make_shared<perception_system::PersonPointingNode>();
 
   rclcpp::spin(cv_node->get_node_base_interface());
 

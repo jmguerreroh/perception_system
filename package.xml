@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>perception</name>
+  <name>perception_system</name>
   <version>0.0.0</version>
-  <description>ROS2 Perception package</description>
+  <description>ROS2 perception_system package</description>
   <maintainer email="josemiguel.guerrero@urjc.es">Jose Miguel Guerrero Hernandez</maintainer>
   <license>Creative Commons Attribution-ShareAlike 4.0 International License.</license>
   <buildtool_depend>ament_cmake</buildtool_depend>

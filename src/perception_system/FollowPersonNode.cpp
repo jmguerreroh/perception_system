@@ -14,9 +14,9 @@
   limitations under the License.
 */
 
-#include "perception/FollowPersonNode.hpp"
+#include "perception_system/FollowPersonNode.hpp"
 
-namespace perception
+namespace perception_system
 {
 
 FollowPersonNode::FollowPersonNode()
@@ -34,7 +34,7 @@ CallbackReturnT FollowPersonNode::on_configure(const rclcpp_lifecycle::State & s
   this->get_parameter("debug", debug_);
 
   markers_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>(
-    "/perception/bb_objects", 10);
+    "/perception_system/bb_objects", 10);
 
   return CallbackReturnT::SUCCESS;
 }
@@ -46,7 +46,7 @@ CallbackReturnT FollowPersonNode::on_activate(const rclcpp_lifecycle::State & st
     state.label().c_str());
 
   sub_ = this->create_subscription<yolov8_msgs::msg::DetectionArray>(
-    "/perception/people_detection", 10,
+    "/perception_system/people_detection", 10,
     [this](yolov8_msgs::msg::DetectionArray::ConstSharedPtr msg) {return this->callback(msg);});
 
   tf_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);
@@ -142,7 +142,7 @@ void FollowPersonNode::callback(
     visualization_msgs::msg::Marker marker;
     marker.header.frame_id = frame_id_;
     marker.header.stamp = msg->header.stamp;
-    marker.ns = "perception";
+    marker.ns = "perception_system";
     marker.id = 0;
     marker.text = "person";
     marker.frame_locked = false;
@@ -169,4 +169,4 @@ void FollowPersonNode::callback(
   }
 }
 
-}  // namespace perception
+}  // namespace perception_system

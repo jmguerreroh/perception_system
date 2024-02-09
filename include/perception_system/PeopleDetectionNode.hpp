@@ -14,25 +14,24 @@
   limitations under the License.
 */
 
-#ifndef OBJECTS_DETECTION_NODE_HPP_
-#define OBJECTS_DETECTION_NODE_HPP_
+#ifndef PEOPLE_DETECTION_NODE_HPP_
+#define PEOPLE_DETECTION_NODE_HPP_
 
 #include "rclcpp/rclcpp.hpp"
 #include "yolov8_msgs/msg/detection_array.hpp"
 #include "lifecycle_msgs/msg/state.hpp"
 #include "rclcpp_lifecycle/lifecycle_node.hpp"
-#include "visualization_msgs/msg/marker_array.hpp"
 
-namespace perception
+namespace perception_system
 {
 
 using CallbackReturnT =
   rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 
-class ObjectsDetectionNode : public rclcpp_lifecycle::LifecycleNode
+class PeopleDetectionNode : public rclcpp_lifecycle::LifecycleNode
 {
 public:
-  ObjectsDetectionNode();
+  PeopleDetectionNode();
 
   CallbackReturnT on_configure(const rclcpp_lifecycle::State & state);
   CallbackReturnT on_activate(const rclcpp_lifecycle::State & state);
@@ -46,13 +45,8 @@ private:
 
   rclcpp::Subscription<yolov8_msgs::msg::DetectionArray>::SharedPtr sub_;
   rclcpp_lifecycle::LifecyclePublisher<yolov8_msgs::msg::DetectionArray>::SharedPtr pub_;
-  rclcpp_lifecycle::LifecyclePublisher<visualization_msgs::msg::MarkerArray>::SharedPtr markers_pub_;
-
-  std::string classes_;
-  bool debug_;
-  std::string frame_id_;
 };
 
-}  // namespace perception
+}  // namespace perception_system
 
-#endif  // OBJECTS_DETECTION_NODE_HPP_
+#endif  // PEOPLE_DETECTION_NODE_HPP_

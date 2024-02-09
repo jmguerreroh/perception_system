@@ -14,13 +14,13 @@
   limitations under the License.
 */
 
-#include "perception/ObjectsDetectionNode.hpp"
+#include "perception_system/ObjectsDetectionNode.hpp"
 
 int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
 
-  auto cv_node = std::make_shared<perception::ObjectsDetectionNode>();
+  auto cv_node = std::make_shared<perception_system::ObjectsDetectionNode>();
 
   rclcpp::spin(cv_node->get_node_base_interface());
 
