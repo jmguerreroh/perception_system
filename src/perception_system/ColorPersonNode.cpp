@@ -144,6 +144,9 @@ void ColorPersonNode::callback(
     round(global_detection.bbox.center.position.x + global_detection.bbox.size.x / 2.0),
     round(global_detection.bbox.center.position.y + global_detection.bbox.size.y / 2.0));
 
+  min_pt = checkPoint(min_pt, image.size());
+  max_pt = checkPoint(max_pt, image.size());
+
   cv::Mat roi = image(cv::Rect(min_pt, max_pt));
 
   // Convert the ROI to the HSV color space
@@ -212,6 +215,9 @@ void ColorPersonNode::callback(
       round(global_detection.bbox.center.position.x + global_detection.bbox.size.x / 2.0),
       round(global_detection.bbox.center.position.y + global_detection.bbox.size.y / 2.0));
 
+    min_pt = checkPoint(min_pt, image.size());
+    max_pt = checkPoint(max_pt, image.size());
+    
     cv::Mat roi = image(cv::Rect(min_pt, max_pt));
     cv::imshow("ID", roi);
     cv::waitKey(1);
