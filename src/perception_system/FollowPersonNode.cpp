@@ -106,11 +106,10 @@ CallbackReturnT FollowPersonNode::on_error(const rclcpp_lifecycle::State & state
 void FollowPersonNode::callback(
   const yolov8_msgs::msg::DetectionArray::ConstSharedPtr & msg)
 {
-  // Find the closest person
-  auto global_detection = msg->detections[0];
-
+  // Find the person with the minimum difference
+  float global_detection = msg->detections[0];
   int64_t global_unique_id = getUniqueIDFromDetection(global_detection);
-  auto global_diff = diffIDs(unique_id_, global_unique_id);
+  float global_diff = diffIDs(unique_id_, global_unique_id);
 
   for (auto detection : msg->detections) {
 
@@ -121,8 +120,8 @@ void FollowPersonNode::callback(
 
     if (min_diff < global_diff) {
       // Display the results
-      std::cout << "ID: " << unique_id_ << ", Select ID: " << global_unique_id << ", min_diff: " <<
-        min_diff << std::endl;
+      // std::cout << "ID: " << unique_id_ << ", Select ID: " << global_unique_id << ", min_diff: " <<
+      //   min_diff << std::endl;
       global_detection = detection;
       global_unique_id = id;
       global_diff = min_diff;
