@@ -13,7 +13,7 @@ find_package(visualization_msgs REQUIRED)
 find_package(lifecycle_msgs REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
 # find_package(image_transport REQUIRED)
-# find_package(cv_bridge REQUIRED)
+find_package(cv_bridge REQUIRED)
 # find_package(sensor_msgs REQUIRED)
 # find_package(std_msgs REQUIRED)
 find_package(OpenCV REQUIRED)
@@ -34,7 +34,7 @@ set(dependencies
   lifecycle_msgs
   rclcpp_lifecycle
   # image_transport
-  # cv_bridge
+  cv_bridge
   # sensor_msgs
   # std_msgs
   OpenCV
@@ -49,6 +49,13 @@ set(dependencies
   # tf2_geometry_msgs
 )
 
+
+set(SOURCES 
+    src/${PROJECT_NAME}/ColorPersonNode.cpp
+    src/${PROJECT_NAME}/FollowPersonNode.cpp
+    include/${PROJECT_NAME}/PerceptionFunctions.hpp 
+)
+
 # OpenCV and PCL node
 include_directories(include)
 add_library(${PROJECT_NAME} SHARED
@@ -56,6 +63,7 @@ add_library(${PROJECT_NAME} SHARED
   src/${PROJECT_NAME}/ObjectsDetectionNode.cpp
   src/${PROJECT_NAME}/PersonPointingNode.cpp
   src/${PROJECT_NAME}/FollowPersonNode.cpp
+  src/${PROJECT_NAME}/ColorPersonNode.cpp
 )
 ament_target_dependencies(${PROJECT_NAME} ${dependencies})
 target_link_libraries(${PROJECT_NAME})
@@ -76,11 +84,16 @@ add_executable(dt_follow src/follow_person_main.cpp)
 ament_target_dependencies(dt_follow ${dependencies})
 target_link_libraries(dt_follow ${PROJECT_NAME})
 
+add_executable(dt_color src/color_person_main.cpp)
+ament_target_dependencies(dt_color ${dependencies})
+target_link_libraries(dt_color ${PROJECT_NAME})
+
 install(TARGETS ${PROJECT_NAME}
   dt_people
   dt_objects
   dt_pointing
   dt_follow
+  dt_color
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
