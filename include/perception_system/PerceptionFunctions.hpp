@@ -109,6 +109,19 @@ inline int64_t getUniqueIDFromDetection(const yolov8_msgs::msg::Detection & dete
     round(bbox.center.position.x + bbox.size.x / 2.0),
     round(bbox.center.position.y + bbox.size.y / 2.0));
 
+  if (min_pt.x < 0) {
+    min_pt.x = 0;
+  }
+  if (min_pt.y < 0) {
+    min_pt.y = 0;
+  }
+  if (max_pt.x > image.cols) {
+    max_pt.x = image.cols;
+  }
+  if (max_pt.y > image.rows) {
+    max_pt.y = image.rows;
+  }
+
   // Get the region of interest
   cv::Mat roi = image(cv::Rect(min_pt, max_pt));
 
