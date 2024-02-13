@@ -25,6 +25,12 @@
 #include "geometry_msgs/msg/transform_stamped.hpp"
 #include "visualization_msgs/msg/marker_array.hpp"
 
+#include <opencv2/opencv.hpp>
+#include <cv_bridge/cv_bridge.h>
+#include <sensor_msgs/msg/image.hpp>
+
+#include "perception_system/PerceptionFunctions.hpp"
+
 namespace perception_system
 {
 
@@ -53,6 +59,7 @@ private:
 
   std::string frame_id_;
   bool debug_;
+  int64_t unique_id_;
 };
 
 }  // namespace perception_system

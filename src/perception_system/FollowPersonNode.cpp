@@ -33,6 +33,9 @@ CallbackReturnT FollowPersonNode::on_configure(const rclcpp_lifecycle::State & s
   this->declare_parameter("debug", false);
   this->get_parameter("debug", debug_);
 
+  this->declare_parameter("unique_id", 0);
+  this->get_parameter("unique_id", unique_id_);
+
   markers_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>(
     "/perception_system/bb_objects", 10);
 
@@ -100,30 +103,29 @@ CallbackReturnT FollowPersonNode::on_error(const rclcpp_lifecycle::State & state
   return CallbackReturnT::SUCCESS;
 }
 
-double distance3D(double x1, double y1, double z1, double x2, double y2, double z2)
-{
-  return std::sqrt(std::pow(x2 - x1, 2) + std::pow(y2 - y1, 2) + std::pow(z2 - z1, 2));
-}
-
 void FollowPersonNode::callback(
   const yolov8_msgs::msg::DetectionArray::ConstSharedPtr & msg)
 {
   // Find the closest person
   auto global_detection = msg->detections[0];
-  auto global_dist = distance3D(
-    global_detection.bbox3d.center.position.x,
-    global_detection.bbox3d.center.position.y,
-    global_detection.bbox3d.center.position.z, 0, 0, 0);
+
+  int64_t global_unique_id = getUniqueIDFromDetection(global_detection);
+  auto global_diff = diffIDs(unique_id_, global_unique_id);
 
   for (auto detection : msg->detections) {
-    auto dist_min = distance3D(
-      detection.bbox3d.center.position.x,
-      detection.bbox3d.center.position.y,
-      detection.bbox3d.center.position.z, 0, 0, 0);
 
-    if (dist_min < global_dist) {
+    // Get the bounding box
+    int64_t id = getUniqueIDFromDetection(detection);
+
+    float min_diff = diffIDs(unique_id_, id);
+
+    if (min_diff < global_diff) {
+      // Display the results
+      std::cout << "ID: " << unique_id_ << ", Select ID: " << global_unique_id << ", min_diff: " <<
+        min_diff << std::endl;
       global_detection = detection;
-      global_dist = dist_min;
+      global_unique_id = id;
+      global_diff = min_diff;
     }
   }
 
@@ -166,6 +168,31 @@ void FollowPersonNode::callback(
     visualization_msgs::msg::MarkerArray marker_array;
     marker_array.markers.push_back(marker);
     markers_pub_->publish(marker_array);
+
+    // Convierte de sensor_msgs::Image a cv::Mat utilizando cv_bridge
+    cv_bridge::CvImagePtr image_rgb_ptr;
+    try {
+      image_rgb_ptr = cv_bridge::toCvCopy(
+        global_detection.source_img,
+        sensor_msgs::image_encodings::BGR8);
+    } catch (cv_bridge::Exception & e) {
+      RCLCPP_ERROR(get_logger(), "cv_bridge exception: %s", e.what());
+      return;
+    }
+
+    // Realiza operaciones con la imagen en formato cv::Mat
+    cv::Mat image = image_rgb_ptr->image;
+
+    cv::Point2d min_pt = cv::Point2d(
+      round(global_detection.bbox.center.position.x - global_detection.bbox.size.x / 2.0),
+      round(global_detection.bbox.center.position.y - global_detection.bbox.size.y / 2.0));
+    cv::Point2d max_pt = cv::Point2d(
+      round(global_detection.bbox.center.position.x + global_detection.bbox.size.x / 2.0),
+      round(global_detection.bbox.center.position.y + global_detection.bbox.size.y / 2.0));
+
+    cv::Mat roi = image(cv::Rect(min_pt, max_pt));
+    cv::imshow("FW", roi);
+    cv::waitKey(1);
   }
 }
 
