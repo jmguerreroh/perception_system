@@ -120,8 +120,6 @@ void FollowPersonNode::callback(
 
     if (min_diff < global_diff) {
       // Display the results
-      // std::cout << "ID: " << unique_id_ << ", Select ID: " << global_unique_id << ", min_diff: " <<
-      //   min_diff << std::endl;
       global_detection = detection;
       global_unique_id = id;
       global_diff = min_diff;
