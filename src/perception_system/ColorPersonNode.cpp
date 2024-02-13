@@ -217,7 +217,7 @@ void ColorPersonNode::callback(
 
     min_pt = checkPoint(min_pt, image.size());
     max_pt = checkPoint(max_pt, image.size());
-    
+
     cv::Mat roi = image(cv::Rect(min_pt, max_pt));
     cv::imshow("ID", roi);
     cv::waitKey(1);
