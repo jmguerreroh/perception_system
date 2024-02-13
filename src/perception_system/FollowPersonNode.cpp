@@ -107,7 +107,7 @@ void FollowPersonNode::callback(
   const yolov8_msgs::msg::DetectionArray::ConstSharedPtr & msg)
 {
   // Find the person with the minimum difference
-  float global_detection = msg->detections[0];
+  auto global_detection = msg->detections[0];
   int64_t global_unique_id = getUniqueIDFromDetection(global_detection);
   float global_diff = diffIDs(unique_id_, global_unique_id);
 
