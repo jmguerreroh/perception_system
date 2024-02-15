@@ -142,9 +142,6 @@ def generate_launch_description():
         executable='dt_yolo',
         output='both',
         emulate_tty=True,
-        # parameters=[
-        #     {"debug": debug},
-        # ],
     )
 
     # Create the launch description and populate
