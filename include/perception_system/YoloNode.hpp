@@ -33,15 +33,3 @@ public:
 };
 
 }  // namespace perception_system
-
-// class YoloDebubNode : public rclcpp_cascade_lifecycle::CascadeLifecycleNode
-// {
-// public:
-//   YoloDebubNode();
-//   CallbackReturnT on_configure(const rclcpp_lifecycle::State & state);
-//   CallbackReturnT on_activate(const rclcpp_lifecycle::State & state);
-//   CallbackReturnT on_deactivate(const rclcpp_lifecycle::State & state);
-//   CallbackReturnT on_cleanup(const rclcpp_lifecycle::State & state);
-//   CallbackReturnT on_shutdown(const rclcpp_lifecycle::State & state);
-//   CallbackReturnT on_error(const rclcpp_lifecycle::State & state);
-// };
