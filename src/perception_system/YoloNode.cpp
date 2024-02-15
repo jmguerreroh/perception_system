@@ -108,7 +108,6 @@ CallbackReturnT YoloNode::on_cleanup(const rclcpp_lifecycle::State & state)
   client_yolo_tracking_node_->async_send_request(request);
   client_yolo_node_->async_send_request(request);
 
-
   return CallbackReturnT::SUCCESS;
 }
 
