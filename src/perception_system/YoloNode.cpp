@@ -23,8 +23,7 @@ YoloNode::YoloNode()
   client_yolo_node_ = this->create_client<lifecycle_msgs::srv::ChangeState>(
     "/yolo/yolov8_node/change_state");
 
-
-  // // Esperar a que el servicio esté disponible
+  // Esperar a que el servicio esté disponible
   while (!client_yolo_debug_node_->wait_for_service(std::chrono::seconds(1) ) &&
     !client_yolo_detect_3d_node_->wait_for_service(std::chrono::seconds(1) ) &&
     !client_yolo_tracking_node_->wait_for_service(std::chrono::seconds(1) ) &&
