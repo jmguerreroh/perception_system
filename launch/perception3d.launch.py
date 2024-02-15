@@ -136,6 +136,17 @@ def generate_launch_description():
         ],
     )
 
+    yolo_node = Node(
+        package='perception_system',
+        namespace='perception_system',
+        executable='dt_yolo',
+        output='both',
+        emulate_tty=True,
+        # parameters=[
+        #     {"debug": debug},
+        # ],
+    )
+
     # Create the launch description and populate
     ld = LaunchDescription()
 
@@ -146,11 +157,14 @@ def generate_launch_description():
     ld.add_action(input_depth_topic_arg)
     ld.add_action(input_depth_info_topic_arg)
     ld.add_action(depth_image_units_divisor_arg)
+
     ld.add_action(yolo3d)
+
     ld.add_action(people_detection_node)
     ld.add_action(pointing_detection_node)
     ld.add_action(objects_detection_node)
     ld.add_action(follow_person_node)
     ld.add_action(color_person_node)
+    ld.add_action(yolo_node)
 
     return ld

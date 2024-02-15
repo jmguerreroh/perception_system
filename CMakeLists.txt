@@ -7,6 +7,7 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
+# find_package(ament_index_cpp REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(yolov8_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
@@ -26,9 +27,13 @@ find_package(OpenCV REQUIRED)
 # find_package(message_filters REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(geometry_msgs REQUIRED)
+# find_package(Python COMPONENTS Interpreter Development)
+# find_package(pybind11 REQUIRED)
 # find_package(tf2_geometry_msgs REQUIRED)
 
 set(dependencies
+  ament_cmake
+  # ament_index_cpp
   rclcpp
   yolov8_msgs
   visualization_msgs
@@ -48,6 +53,7 @@ set(dependencies
   # message_filters
   tf2_ros
   geometry_msgs
+  # pybind11
   # tf2_geometry_msgs
 )
 
@@ -66,6 +72,7 @@ add_library(${PROJECT_NAME} SHARED
   src/${PROJECT_NAME}/PersonPointingNode.cpp
   src/${PROJECT_NAME}/FollowPersonNode.cpp
   src/${PROJECT_NAME}/ColorPersonNode.cpp
+  src/${PROJECT_NAME}/YoloNode.cpp
 )
 ament_target_dependencies(${PROJECT_NAME} ${dependencies})
 target_link_libraries(${PROJECT_NAME})
@@ -90,12 +97,18 @@ add_executable(dt_color src/color_person_main.cpp)
 ament_target_dependencies(dt_color ${dependencies})
 target_link_libraries(dt_color ${PROJECT_NAME})
 
+add_executable(dt_yolo src/yolo_main.cpp)
+ament_target_dependencies(dt_yolo ${dependencies})
+target_link_libraries(dt_yolo ${PROJECT_NAME})
+# target_link_libraries(dt_yolo pybind11::pybind11 ${PROJECT_NAME})
+
 install(TARGETS ${PROJECT_NAME}
   dt_people
   dt_objects
   dt_pointing
   dt_follow
   dt_color
+  dt_yolo
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin

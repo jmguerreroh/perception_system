@@ -20,7 +20,11 @@ namespace perception_system
 {
 
 ObjectsDetectionNode::ObjectsDetectionNode()
-: rclcpp_cascade_lifecycle::CascadeLifecycleNode("objects_detection_node") {}
+: rclcpp_cascade_lifecycle::CascadeLifecycleNode("objects_detection_node")
+{
+  // Add the activation of the people detection node
+  this->add_activation("yolo_node");
+}
 
 CallbackReturnT ObjectsDetectionNode::on_configure(const rclcpp_lifecycle::State & state)
 {
