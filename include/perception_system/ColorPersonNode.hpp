@@ -18,11 +18,16 @@
 #define COLOR_PERSON_NODE_HPP_
 
 #include "rclcpp/rclcpp.hpp"
+
 #include "yolov8_msgs/msg/detection_array.hpp"
-#include "lifecycle_msgs/msg/state.hpp"
-#include "rclcpp_lifecycle/lifecycle_node.hpp"
 #include "visualization_msgs/msg/marker_array.hpp"
 #include "std_msgs/msg/int64.hpp"
+
+#include "lifecycle_msgs/msg/state.hpp"
+#include "rclcpp_cascade_lifecycle/rclcpp_cascade_lifecycle.hpp"
+
+#include "cascade_lifecycle_msgs/msg/activation.hpp"
+#include "cascade_lifecycle_msgs/msg/state.hpp"
 
 #include <opencv2/opencv.hpp>
 #include <cv_bridge/cv_bridge.h>
@@ -36,7 +41,7 @@ namespace perception_system
 using CallbackReturnT =
   rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 
-class ColorPersonNode : public rclcpp_lifecycle::LifecycleNode
+class ColorPersonNode : public rclcpp_cascade_lifecycle::CascadeLifecycleNode
 {
 public:
   ColorPersonNode();

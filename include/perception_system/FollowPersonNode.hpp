@@ -18,12 +18,17 @@
 #define FOLLOW_PERSON_NODE_HPP_
 
 #include "rclcpp/rclcpp.hpp"
+
 #include "yolov8_msgs/msg/detection_array.hpp"
-#include "lifecycle_msgs/msg/state.hpp"
-#include "rclcpp_lifecycle/lifecycle_node.hpp"
+#include "visualization_msgs/msg/marker_array.hpp"
 #include "tf2_ros/static_transform_broadcaster.h"
 #include "geometry_msgs/msg/transform_stamped.hpp"
-#include "visualization_msgs/msg/marker_array.hpp"
+
+#include "lifecycle_msgs/msg/state.hpp"
+#include "rclcpp_cascade_lifecycle/rclcpp_cascade_lifecycle.hpp"
+
+#include "cascade_lifecycle_msgs/msg/activation.hpp"
+#include "cascade_lifecycle_msgs/msg/state.hpp"
 
 #include <opencv2/opencv.hpp>
 #include <cv_bridge/cv_bridge.h>
@@ -37,7 +42,7 @@ namespace perception_system
 using CallbackReturnT =
   rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 
-class FollowPersonNode : public rclcpp_lifecycle::LifecycleNode
+class FollowPersonNode : public rclcpp_cascade_lifecycle::CascadeLifecycleNode
 {
 public:
   FollowPersonNode();

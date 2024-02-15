@@ -20,7 +20,11 @@ namespace perception_system
 {
 
 FollowPersonNode::FollowPersonNode()
-: rclcpp_lifecycle::LifecycleNode("follow_person_node") {}
+: rclcpp_cascade_lifecycle::CascadeLifecycleNode("follow_person_node")
+{
+  // Add the activation of the people detection node
+  this->add_activation("people_detection_node");
+}
 
 CallbackReturnT FollowPersonNode::on_configure(const rclcpp_lifecycle::State & state)
 {

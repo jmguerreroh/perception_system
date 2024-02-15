@@ -20,7 +20,11 @@ namespace perception_system
 {
 
 ColorPersonNode::ColorPersonNode()
-: rclcpp_lifecycle::LifecycleNode("color_person_node") {}
+: rclcpp_cascade_lifecycle::CascadeLifecycleNode("color_person_node")
+{
+  // Add the activation of the people detection node
+  this->add_activation("people_detection_node");
+}
 
 CallbackReturnT ColorPersonNode::on_configure(const rclcpp_lifecycle::State & state)
 {

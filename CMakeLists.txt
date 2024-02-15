@@ -12,6 +12,7 @@ find_package(yolov8_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(lifecycle_msgs REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
+find_package(rclcpp_cascade_lifecycle REQUIRED)
 # find_package(image_transport REQUIRED)
 find_package(cv_bridge REQUIRED)
 # find_package(sensor_msgs REQUIRED)
@@ -33,6 +34,7 @@ set(dependencies
   visualization_msgs
   lifecycle_msgs
   rclcpp_lifecycle
+  rclcpp_cascade_lifecycle
   # image_transport
   cv_bridge
   # sensor_msgs

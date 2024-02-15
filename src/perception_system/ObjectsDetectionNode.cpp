@@ -20,7 +20,7 @@ namespace perception_system
 {
 
 ObjectsDetectionNode::ObjectsDetectionNode()
-: rclcpp_lifecycle::LifecycleNode("objects_detection_node") {}
+: rclcpp_cascade_lifecycle::CascadeLifecycleNode("objects_detection_node") {}
 
 CallbackReturnT ObjectsDetectionNode::on_configure(const rclcpp_lifecycle::State & state)
 {

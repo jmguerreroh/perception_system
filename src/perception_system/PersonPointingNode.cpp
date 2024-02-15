@@ -22,7 +22,11 @@ namespace perception_system
 {
 
 PersonPointingNode::PersonPointingNode()
-: rclcpp_lifecycle::LifecycleNode("person_pointing_node") {}
+: rclcpp_cascade_lifecycle::CascadeLifecycleNode("person_pointing_node")
+{
+  // Add the activation of the people detection node
+  this->add_activation("people_detection_node");
+}
 
 CallbackReturnT PersonPointingNode::on_configure(const rclcpp_lifecycle::State & state)
 {

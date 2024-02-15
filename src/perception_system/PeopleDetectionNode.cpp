@@ -20,7 +20,7 @@ namespace perception_system
 {
 
 PeopleDetectionNode::PeopleDetectionNode()
-: rclcpp_lifecycle::LifecycleNode("people_detection_node") {}
+: rclcpp_cascade_lifecycle::CascadeLifecycleNode("people_detection_node") {}
 
 CallbackReturnT PeopleDetectionNode::on_configure(const rclcpp_lifecycle::State & state)
 {
