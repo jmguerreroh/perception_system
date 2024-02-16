@@ -71,6 +71,7 @@ def generate_launch_description():
     yolo3d = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(yolo3d_launch),
         launch_arguments={
+            'namespace': 'perception_system',
             'model': model,
             'input_image_topic': input_image_topic,
             'input_depth_topic': input_depth_topic,
@@ -162,6 +163,6 @@ def generate_launch_description():
     ld.add_action(objects_detection_node)
     ld.add_action(follow_person_node)
     ld.add_action(color_person_node)
-    ld.add_action(yolo_node)
+    # ld.add_action(yolo_node)
 
     return ld

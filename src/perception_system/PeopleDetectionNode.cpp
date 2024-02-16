@@ -23,7 +23,10 @@ PeopleDetectionNode::PeopleDetectionNode()
 : rclcpp_cascade_lifecycle::CascadeLifecycleNode("people_detection_node")
 {
   // Add the activation of the people detection node
-  this->add_activation("yolo_node");
+  this->add_activation("yolov8_node");
+  this->add_activation("yolov8_detect_3d_node");
+  this->add_activation("yolov8_tracking_node");
+  this->add_activation("yolov8_debug_node");
 }
 
 CallbackReturnT PeopleDetectionNode::on_configure(const rclcpp_lifecycle::State & state)
@@ -45,7 +48,7 @@ CallbackReturnT PeopleDetectionNode::on_activate(const rclcpp_lifecycle::State &
     state.label().c_str());
 
   sub_ = this->create_subscription<yolov8_msgs::msg::DetectionArray>(
-    "/yolo/detections_3d", 10,
+    "/perception_system/detections_3d", 10,
     [this](yolov8_msgs::msg::DetectionArray::ConstSharedPtr msg) {return this->callback(msg);});
 
   pub_->on_activate();

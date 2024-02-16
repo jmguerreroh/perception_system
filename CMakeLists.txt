@@ -72,7 +72,7 @@ add_library(${PROJECT_NAME} SHARED
   src/${PROJECT_NAME}/PersonPointingNode.cpp
   src/${PROJECT_NAME}/FollowPersonNode.cpp
   src/${PROJECT_NAME}/ColorPersonNode.cpp
-  src/${PROJECT_NAME}/YoloNode.cpp
+  # src/${PROJECT_NAME}/YoloNode.cpp
 )
 ament_target_dependencies(${PROJECT_NAME} ${dependencies})
 target_link_libraries(${PROJECT_NAME})
@@ -97,9 +97,9 @@ add_executable(dt_color src/color_person_main.cpp)
 ament_target_dependencies(dt_color ${dependencies})
 target_link_libraries(dt_color ${PROJECT_NAME})
 
-add_executable(dt_yolo src/yolo_main.cpp)
-ament_target_dependencies(dt_yolo ${dependencies})
-target_link_libraries(dt_yolo ${PROJECT_NAME})
+# add_executable(dt_yolo src/yolo_main.cpp)
+# ament_target_dependencies(dt_yolo ${dependencies})
+# target_link_libraries(dt_yolo ${PROJECT_NAME})
 # target_link_libraries(dt_yolo pybind11::pybind11 ${PROJECT_NAME})
 
 install(TARGETS ${PROJECT_NAME}
@@ -108,7 +108,7 @@ install(TARGETS ${PROJECT_NAME}
   dt_pointing
   dt_follow
   dt_color
-  dt_yolo
+  # dt_yolo
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin

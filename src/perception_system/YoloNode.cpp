@@ -15,13 +15,13 @@ YoloNode::YoloNode()
 
   // Crear un cliente de servicio para el servicio de cambio de estado
   client_yolo_debug_node_ = this->create_client<lifecycle_msgs::srv::ChangeState>(
-    "/yolo/yolov8_debug_node/change_state");
+    "/perception_system/yolov8_debug_node/change_state");
   client_yolo_detect_3d_node_ = this->create_client<lifecycle_msgs::srv::ChangeState>(
-    "/yolo/yolov8_detect_3d_node/change_state");
+    "/perception_system/yolov8_detect_3d_node/change_state");
   client_yolo_tracking_node_ = this->create_client<lifecycle_msgs::srv::ChangeState>(
-    "/yolo/yolov8_tracking_node/change_state");
+    "/perception_system/yolov8_tracking_node/change_state");
   client_yolo_node_ = this->create_client<lifecycle_msgs::srv::ChangeState>(
-    "/yolo/yolov8_node/change_state");
+    "/perception_system/yolov8_node/change_state");
 
   // Esperar a que el servicio esté disponible
   while (!client_yolo_debug_node_->wait_for_service(std::chrono::seconds(1) ) &&
