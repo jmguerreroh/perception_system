@@ -110,6 +110,7 @@ def generate_launch_description():
         emulate_tty=True,
         parameters=[
             {"debug": debug},
+            {"unique_id": -1}, # -1 to disable id and detect the closest person
         ],
     )
 

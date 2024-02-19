@@ -36,6 +36,8 @@ CallbackReturnT PersonPointingNode::on_configure(const rclcpp_lifecycle::State &
 
   this->declare_parameter("debug", false);
   this->get_parameter("debug", debug_);
+  this->declare_parameter("unique_id", -1);
+  this->get_parameter("unique_id", unique_id_);
 
   pub_ = this->create_publisher<std_msgs::msg::UInt8>(
     "/perception_system/person_pointing", 10);
@@ -139,6 +141,8 @@ void PersonPointingNode::callback(
 
   auto global_detection = msg->detections[0];
   auto global_size = global_detection.bbox.size.x * global_detection.bbox.size.y;
+  int64_t global_unique_id = getUniqueIDFromDetection(global_detection);
+  float global_diff = diffIDs(unique_id_, global_unique_id);
 
   // Arms
   yolov8_msgs::msg::Point2D left_elbow, left_wrist, left_hip;
@@ -153,52 +157,66 @@ void PersonPointingNode::callback(
 
   for (auto detection : msg->detections) {
     auto size = detection.bbox.size.x * detection.bbox.size.y;
-    if (size >= global_size) {
-      global_detection = detection;
-      global_size = size;
 
-      for (auto keypoint : detection.keypoints.data) {
-        switch (keypoint.id) {
-          case 8:
-            left_elbow = keypoint.point;
-            left_elbow_found = true;
-            break;
-          case 10:
-            left_wrist = keypoint.point;
-            left_wrist_found = true;
-            break;
-          case 12:
-            left_hip = keypoint.point;
-            left_hip_found = true;
-            break;
-          case 9:
-            right_elbow = keypoint.point;
-            right_elbow_found = true;
-            break;
-          case 11:
-            right_wrist = keypoint.point;
-            right_wrist_found = true;
-            break;
-          case 13:
-            right_hip = keypoint.point;
-            right_hip_found = true;
-            break;
+    // Get the bounding box
+    if (unique_id_ != -1) { // If the unique_id_ is set, we need to compare
+      int64_t id = getUniqueIDFromDetection(detection);
+      float min_diff = diffIDs(unique_id_, id);
+      if (min_diff < global_diff) {
+        // Display the results
+        global_detection = detection;
+        // global_size = size;
+        global_unique_id = id;
+        global_diff = min_diff;
+      }
+    } else { // If the unique_id_ is not set, we don't need to compare
+      if (size >= global_size) {
+        global_detection = detection;
+        global_size = size;
+      }
+    }
 
-          default:
-            break;
-        }
+    for (auto keypoint : global_detection.keypoints.data) {
+      switch (keypoint.id) {
+        case 8:
+          left_elbow = keypoint.point;
+          left_elbow_found = true;
+          break;
+        case 10:
+          left_wrist = keypoint.point;
+          left_wrist_found = true;
+          break;
+        case 12:
+          left_hip = keypoint.point;
+          left_hip_found = true;
+          break;
+        case 9:
+          right_elbow = keypoint.point;
+          right_elbow_found = true;
+          break;
+        case 11:
+          right_wrist = keypoint.point;
+          right_wrist_found = true;
+          break;
+        case 13:
+          right_hip = keypoint.point;
+          right_hip_found = true;
+          break;
 
-        if (debug_) {
-          cv::circle(
-            img, cv::Point(keypoint.point.x, keypoint.point.y), 5, cv::Scalar(
-              0, 255,
-              0), -1);
-          cv::putText(
-            img, std::to_string(keypoint.id), cv::Point(
-              keypoint.point.x,
-              keypoint.point.y), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(
-              255, 255, 255), 1);
-        }
+        default:
+          break;
+      }
+
+      if (debug_) {
+        cv::circle(
+          img, cv::Point(keypoint.point.x, keypoint.point.y), 5, cv::Scalar(
+            0, 255,
+            0), -1);
+        cv::putText(
+          img, std::to_string(keypoint.id), cv::Point(
+            keypoint.point.x,
+            keypoint.point.y), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(
+            255, 255, 255), 1);
       }
     }
   }
@@ -248,6 +266,34 @@ void PersonPointingNode::callback(
 
   if (debug_) {
     cv::imshow("Person Pointing", img);
+
+    // Convierte de sensor_msgs::Image a cv::Mat utilizando cv_bridge
+    cv_bridge::CvImagePtr image_rgb_ptr;
+    try {
+      image_rgb_ptr = cv_bridge::toCvCopy(
+        global_detection.source_img,
+        sensor_msgs::image_encodings::BGR8);
+    } catch (cv_bridge::Exception & e) {
+      RCLCPP_ERROR(get_logger(), "cv_bridge exception: %s", e.what());
+      return;
+    }
+
+    // Realiza operaciones con la imagen en formato cv::Mat
+    cv::Mat image = image_rgb_ptr->image;
+
+    cv::Point2d min_pt = cv::Point2d(
+      round(global_detection.bbox.center.position.x - global_detection.bbox.size.x / 2.0),
+      round(global_detection.bbox.center.position.y - global_detection.bbox.size.y / 2.0));
+    cv::Point2d max_pt = cv::Point2d(
+      round(global_detection.bbox.center.position.x + global_detection.bbox.size.x / 2.0),
+      round(global_detection.bbox.center.position.y + global_detection.bbox.size.y / 2.0));
+
+    min_pt = checkPoint(min_pt, image.size());
+    max_pt = checkPoint(max_pt, image.size());
+
+    cv::Mat roi = image(cv::Rect(min_pt, max_pt));
+    cv::imshow("PT", roi);
+
     cv::waitKey(1);
   }
 

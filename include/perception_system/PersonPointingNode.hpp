@@ -29,6 +29,11 @@
 #include "cascade_lifecycle_msgs/msg/activation.hpp"
 #include "cascade_lifecycle_msgs/msg/state.hpp"
 
+#include <opencv2/opencv.hpp>
+#include <cv_bridge/cv_bridge.h>
+
+#include "perception_system/PerceptionFunctions.hpp"
+
 namespace perception_system
 {
 
@@ -54,6 +59,7 @@ private:
   rclcpp_lifecycle::LifecyclePublisher<std_msgs::msg::UInt8>::SharedPtr pub_;
 
   bool debug_;
+  int64_t unique_id_;
 };
 
 }  // namespace perception_system

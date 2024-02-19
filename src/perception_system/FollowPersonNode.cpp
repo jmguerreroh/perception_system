@@ -36,7 +36,6 @@ CallbackReturnT FollowPersonNode::on_configure(const rclcpp_lifecycle::State & s
   this->get_parameter("target_frame", frame_id_);
   this->declare_parameter("debug", false);
   this->get_parameter("debug", debug_);
-
   this->declare_parameter("unique_id", 0);
   this->get_parameter("unique_id", unique_id_);
 
