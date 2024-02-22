@@ -7,7 +7,6 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
-# find_package(ament_index_cpp REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(yolov8_msgs REQUIRED)
@@ -15,55 +14,49 @@ find_package(visualization_msgs REQUIRED)
 find_package(lifecycle_msgs REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
 find_package(rclcpp_cascade_lifecycle REQUIRED)
-# find_package(image_transport REQUIRED)
+find_package(OpenCV REQUIRED)
 find_package(cv_bridge REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(geometry_msgs REQUIRED)
+# find_package(ament_index_cpp REQUIRED)
+# find_package(image_transport REQUIRED)
 # find_package(sensor_msgs REQUIRED)
 # find_package(std_msgs REQUIRED)
-find_package(OpenCV REQUIRED)
 # find_package(PCL 1.8 REQUIRED QUIET)
 # find_package(pcl_conversions REQUIRED)
 # find_package(image_geometry REQUIRED)
 # find_package(depth_image_proc REQUIRED)
 # find_package(Eigen3 REQUIRED)
 # find_package(message_filters REQUIRED)
-find_package(tf2_ros REQUIRED)
-find_package(geometry_msgs REQUIRED)
 # find_package(Python COMPONENTS Interpreter Development)
 # find_package(pybind11 REQUIRED)
 # find_package(tf2_geometry_msgs REQUIRED)
 
 set(dependencies
   ament_cmake
-  # ament_index_cpp
   rclcpp
   rclcpp_components
   yolov8_msgs
   visualization_msgs
   lifecycle_msgs
   rclcpp_lifecycle
-  rclcpp_cascade_lifecycle
-  # image_transport
+  rclcpp_cascade_lifecycle  
+  OpenCV
   cv_bridge
+  tf2_ros
+  geometry_msgs  
+  # ament_index_cpp
+  # image_transport
   # sensor_msgs
   # std_msgs
-  OpenCV
   # PCL
   # pcl_conversions
   # image_geometry
   # depth_image_proc
   # Eigen3
   # message_filters
-  tf2_ros
-  geometry_msgs
   # pybind11
   # tf2_geometry_msgs
-)
-
-
-set(SOURCES
-    src/${PROJECT_NAME}/ColorPersonNode.cpp
-    src/${PROJECT_NAME}/FollowPersonNode.cpp
-    include/${PROJECT_NAME}/PerceptionFunctions.hpp
 )
 
 # OpenCV and PCL node
