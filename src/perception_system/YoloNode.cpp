@@ -4,8 +4,8 @@
 namespace perception_system
 {
 
-YoloNode::YoloNode()
-: rclcpp_cascade_lifecycle::CascadeLifecycleNode("yolo_node")
+YoloNode::YoloNode(const rclcpp::NodeOptions & options)
+: rclcpp_cascade_lifecycle::CascadeLifecycleNode("yolo_node", options)
 {
   // Add the activation of YOLO nodes
   this->add_activation("yolov8_node");
@@ -128,3 +128,10 @@ CallbackReturnT YoloNode::on_error(const rclcpp_lifecycle::State & state)
 }
 
 }  // namespace perception_system
+
+#include "rclcpp_components/register_node_macro.hpp"
+
+// Register the component with class_loader.
+// This acts as a sort of entry point, allowing the component to be discoverable when its library
+// is being loaded into a running process.
+RCLCPP_COMPONENTS_REGISTER_NODE(perception_system::YoloNode)

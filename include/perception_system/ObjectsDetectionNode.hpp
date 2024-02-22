@@ -37,7 +37,7 @@ using CallbackReturnT =
 class ObjectsDetectionNode : public rclcpp_cascade_lifecycle::CascadeLifecycleNode
 {
 public:
-  ObjectsDetectionNode();
+  ObjectsDetectionNode(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
 
   CallbackReturnT on_configure(const rclcpp_lifecycle::State & state);
   CallbackReturnT on_activate(const rclcpp_lifecycle::State & state);

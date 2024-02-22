@@ -36,7 +36,7 @@ using CallbackReturnT =
 class PeopleDetectionNode : public rclcpp_cascade_lifecycle::CascadeLifecycleNode
 {
 public:
-  PeopleDetectionNode();
+  PeopleDetectionNode(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
 
   CallbackReturnT on_configure(const rclcpp_lifecycle::State & state);
   CallbackReturnT on_activate(const rclcpp_lifecycle::State & state);
