@@ -43,7 +43,7 @@ using CallbackReturnT =
 class PersonPointingNode : public rclcpp_cascade_lifecycle::CascadeLifecycleNode
 {
 public:
-  PersonPointingNode();
+  PersonPointingNode(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
 
   CallbackReturnT on_configure(const rclcpp_lifecycle::State & state);
   CallbackReturnT on_activate(const rclcpp_lifecycle::State & state);

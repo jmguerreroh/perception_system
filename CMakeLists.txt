@@ -9,6 +9,7 @@ endif()
 find_package(ament_cmake REQUIRED)
 # find_package(ament_index_cpp REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rclcpp_components REQUIRED)
 find_package(yolov8_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(lifecycle_msgs REQUIRED)
@@ -35,6 +36,7 @@ set(dependencies
   ament_cmake
   # ament_index_cpp
   rclcpp
+  rclcpp_components
   yolov8_msgs
   visualization_msgs
   lifecycle_msgs
@@ -76,6 +78,13 @@ add_library(${PROJECT_NAME} SHARED
 )
 ament_target_dependencies(${PROJECT_NAME} ${dependencies})
 target_link_libraries(${PROJECT_NAME})
+
+rclcpp_components_register_nodes(${PROJECT_NAME} "perception_system::PeopleDetectionNode")
+rclcpp_components_register_nodes(${PROJECT_NAME} "perception_system::ObjectsDetectionNode")
+rclcpp_components_register_nodes(${PROJECT_NAME} "perception_system::PersonPointingNode")
+rclcpp_components_register_nodes(${PROJECT_NAME} "perception_system::FollowPersonNode")
+rclcpp_components_register_nodes(${PROJECT_NAME} "perception_system::ColorPersonNode")
+# rclcpp_components_register_nodes(${PROJECT_NAME} "perception_system::YoloNode")
 
 add_executable(dt_people src/people_detection_main.cpp)
 ament_target_dependencies(dt_people ${dependencies})

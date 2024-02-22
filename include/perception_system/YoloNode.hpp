@@ -18,7 +18,7 @@ using CallbackReturnT =
 class YoloNode : public rclcpp_cascade_lifecycle::CascadeLifecycleNode
 {
 public:
-  YoloNode();
+  YoloNode(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
   CallbackReturnT on_configure(const rclcpp_lifecycle::State & state);
   CallbackReturnT on_activate(const rclcpp_lifecycle::State & state);
   CallbackReturnT on_deactivate(const rclcpp_lifecycle::State & state);

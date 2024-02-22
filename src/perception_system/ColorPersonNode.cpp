@@ -19,8 +19,8 @@
 namespace perception_system
 {
 
-ColorPersonNode::ColorPersonNode()
-: rclcpp_cascade_lifecycle::CascadeLifecycleNode("color_person_node")
+ColorPersonNode::ColorPersonNode(const rclcpp::NodeOptions & options)
+: rclcpp_cascade_lifecycle::CascadeLifecycleNode("color_person_node", options)
 {
   // Add the activation of the people detection node
   this->add_activation("people_detection_node");
@@ -229,3 +229,10 @@ void ColorPersonNode::callback(
 }
 
 }  // namespace perception_system
+
+#include "rclcpp_components/register_node_macro.hpp"
+
+// Register the component with class_loader.
+// This acts as a sort of entry point, allowing the component to be discoverable when its library
+// is being loaded into a running process.
+RCLCPP_COMPONENTS_REGISTER_NODE(perception_system::ColorPersonNode)
