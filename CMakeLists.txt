@@ -60,10 +60,10 @@ set(dependencies
 )
 
 
-set(SOURCES 
+set(SOURCES
     src/${PROJECT_NAME}/ColorPersonNode.cpp
     src/${PROJECT_NAME}/FollowPersonNode.cpp
-    include/${PROJECT_NAME}/PerceptionFunctions.hpp 
+    include/${PROJECT_NAME}/PerceptionFunctions.hpp
 )
 
 # OpenCV and PCL node
