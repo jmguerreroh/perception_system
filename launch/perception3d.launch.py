@@ -98,7 +98,7 @@ def generate_launch_description():
         parameters=[
             {'target_frame': target_frame},
             {'debug': debug},
-            {'classes': 'all'},
+            {'classes': 'dining table'},
         ],
     )
 

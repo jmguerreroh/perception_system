@@ -110,6 +110,8 @@ void PeopleDetectionNode::callback(
   }
 
   if (people_array.detections.size() > 0) {
+    people_array.header = msg->header;
+    people_array.source_img = msg->source_img;
     pub_->publish(people_array);
   }
 }

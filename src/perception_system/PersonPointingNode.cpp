@@ -141,7 +141,7 @@ void PersonPointingNode::callback(
 
   auto global_detection = msg->detections[0];
   auto global_size = global_detection.bbox.size.x * global_detection.bbox.size.y;
-  int64_t global_unique_id = getUniqueIDFromDetection(global_detection);
+  int64_t global_unique_id = getUniqueIDFromDetection(msg->source_img, global_detection);
   float global_diff = diffIDs(unique_id_, global_unique_id);
 
   // Arms
@@ -160,7 +160,7 @@ void PersonPointingNode::callback(
 
     // Get the bounding box
     if (unique_id_ != -1) { // If the unique_id_ is set, we need to compare
-      int64_t id = getUniqueIDFromDetection(detection);
+      int64_t id = getUniqueIDFromDetection(msg->source_img, detection);
       float min_diff = diffIDs(unique_id_, id);
       if (min_diff < global_diff) {
         // Display the results
@@ -270,9 +270,7 @@ void PersonPointingNode::callback(
     // Convierte de sensor_msgs::Image a cv::Mat utilizando cv_bridge
     cv_bridge::CvImagePtr image_rgb_ptr;
     try {
-      image_rgb_ptr = cv_bridge::toCvCopy(
-        global_detection.source_img,
-        sensor_msgs::image_encodings::BGR8);
+      image_rgb_ptr = cv_bridge::toCvCopy(msg->source_img, sensor_msgs::image_encodings::BGR8);
     } catch (cv_bridge::Exception & e) {
       RCLCPP_ERROR(get_logger(), "cv_bridge exception: %s", e.what());
       return;

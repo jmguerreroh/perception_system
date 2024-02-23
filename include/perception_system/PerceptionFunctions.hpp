@@ -104,12 +104,12 @@ inline cv::Point2d checkPoint(cv::Point2d point, cv::Size size)
   return point;
 }
 
-inline int64_t getUniqueIDFromDetection(const yolov8_msgs::msg::Detection & detection)
+inline int64_t getUniqueIDFromDetection(const sensor_msgs::msg::Image & img, const yolov8_msgs::msg::Detection & detection)
 {
   // Convert sensor_msgs::Image to cv::Mat using cv_bridge
   cv_bridge::CvImagePtr image_rgb_ptr;
   try {
-    image_rgb_ptr = cv_bridge::toCvCopy(detection.source_img, sensor_msgs::image_encodings::BGR8);
+    image_rgb_ptr = cv_bridge::toCvCopy(img, sensor_msgs::image_encodings::BGR8);
   } catch (cv_bridge::Exception & e) {
     std::cout << "cv_bridge exception: " << e.what() << std::endl;
     return -1;
