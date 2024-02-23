@@ -19,17 +19,24 @@ find_package(cv_bridge REQUIRED)
 # find_package(sensor_msgs REQUIRED)
 # find_package(std_msgs REQUIRED)
 find_package(OpenCV REQUIRED)
-# find_package(PCL 1.8 REQUIRED QUIET)
-# find_package(pcl_conversions REQUIRED)
+find_package(PCL 1.8 REQUIRED QUIET)
+find_package(pcl_conversions REQUIRED)
 # find_package(image_geometry REQUIRED)
 # find_package(depth_image_proc REQUIRED)
-# find_package(Eigen3 REQUIRED)
+find_package(Eigen3 REQUIRED)
 # find_package(message_filters REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(perception_system_interfaces REQUIRED)
 # find_package(Python COMPONENTS Interpreter Development)
 # find_package(pybind11 REQUIRED)
 # find_package(tf2_geometry_msgs REQUIRED)
+find_package(PCL 1.8 REQUIRED QUIET)
+find_package(pcl_conversions REQUIRED)
+
+include_directories(${PCL_INCLUDE_DIRS})
+link_directories(${PCL_LIBRARY_DIRS})
+add_definitions(${PCL_DEFINITIONS})
 
 set(dependencies
   ament_cmake
@@ -45,16 +52,17 @@ set(dependencies
   # sensor_msgs
   # std_msgs
   OpenCV
-  # PCL
-  # pcl_conversions
+  PCL
+  pcl_conversions
   # image_geometry
   # depth_image_proc
-  # Eigen3
+  Eigen3
   # message_filters
   tf2_ros
   geometry_msgs
   # pybind11
   # tf2_geometry_msgs
+  perception_system_interfaces
 )
 
 
@@ -72,10 +80,11 @@ add_library(${PROJECT_NAME} SHARED
   src/${PROJECT_NAME}/PersonPointingNode.cpp
   src/${PROJECT_NAME}/FollowPersonNode.cpp
   src/${PROJECT_NAME}/ColorPersonNode.cpp
+  src/${PROJECT_NAME}/CollisionServer.cpp
   # src/${PROJECT_NAME}/YoloNode.cpp
 )
 ament_target_dependencies(${PROJECT_NAME} ${dependencies})
-target_link_libraries(${PROJECT_NAME})
+target_link_libraries(${PROJECT_NAME} ${PCL_LIBRARIES})
 
 add_executable(dt_people src/people_detection_main.cpp)
 ament_target_dependencies(dt_people ${dependencies})
@@ -102,6 +111,10 @@ target_link_libraries(dt_color ${PROJECT_NAME})
 # target_link_libraries(dt_yolo ${PROJECT_NAME})
 # target_link_libraries(dt_yolo pybind11::pybind11 ${PROJECT_NAME})
 
+add_executable(collision_server src/collision_server_main.cpp)
+ament_target_dependencies(collision_server ${dependencies})
+target_link_libraries(collision_server ${PROJECT_NAME})
+
 install(TARGETS ${PROJECT_NAME}
   dt_people
   dt_objects
@@ -109,6 +122,7 @@ install(TARGETS ${PROJECT_NAME}
   dt_follow
   dt_color
   # dt_yolo
+  collision_server
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin

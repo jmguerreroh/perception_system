@@ -16,8 +16,22 @@
 
 #pragma once
 
+#include <iostream>
+#include <algorithm>
+
+#include "pcl/point_types.h"
+#include "pcl_conversions/pcl_conversions.h"
+#include "pcl/point_types_conversion.h"
+#include "pcl/conversions.h"
+#include "pcl/filters/voxel_grid.h"
+#include "pcl/filters/extract_indices.h"
+#include "pcl/segmentation/sac_segmentation.h"
+#include "pcl/sample_consensus/ransac.h"
+#include <pcl/filters/statistical_outlier_removal.h>
+
 #include <opencv2/opencv.hpp>
 #include "yolov8_msgs/msg/detection_array.hpp"
+#include "sensor_msgs/msg/point_cloud2.hpp"
 
 namespace perception_system
 {
@@ -163,6 +177,81 @@ inline float diffIDs(int64_t id1, ino64_t id2)
   // Return the average difference between the two unique IDs in HSV space with a weight of 2 for H and 1 for S and V
   return (diff_h_up[0] * 2 + diff_s_up[0] + diff_v_up[0] + diff_h_down[0] * 2 + diff_s_down[0] +
          diff_v_down[0]) / 6;
+}
+
+inline pcl::PointCloud<pcl::PointXYZRGB> ExtractNPlanes(
+    const pcl::PointCloud<pcl::PointXYZRGB> in_pointcloud, const int & number_of_planes)
+{
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZRGB>);
+  pcl::copyPointCloud(in_pointcloud, *cloud_filtered);
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_filtered_ptr_inliers(new pcl::PointCloud<pcl::PointXYZRGB>);
+
+  // Create the filtering object
+  pcl::VoxelGrid<pcl::PointXYZRGB> sor;
+  sor.setInputCloud(cloud_filtered);
+  sor.setLeafSize(0.01, 0.01, 0.01);
+  sor.filter(*cloud_filtered_ptr_inliers);
+
+  // Extract indices
+  pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients());
+  pcl::PointIndices::Ptr inliers(new pcl::PointIndices());
+  // Create the segmentation object
+  pcl::SACSegmentation<pcl::PointXYZRGB> seg;
+  // Optional
+  seg.setOptimizeCoefficients(true);
+  // Mandatory
+  seg.setModelType(pcl::SACMODEL_PLANE);
+  seg.setMethodType(pcl::SAC_RANSAC);
+  seg.setMaxIterations(1000);
+  seg.setDistanceThreshold(0.01);
+
+
+  // Create the filtering object
+  pcl::ExtractIndices<pcl::PointXYZRGB> extract;
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_p(new pcl::PointCloud<pcl::PointXYZRGB>), cloud_f(
+    new pcl::PointCloud<pcl::PointXYZRGB>);
+  // PointCloud with final indices
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr all_points(new pcl::PointCloud<pcl::PointXYZRGB>);
+
+  seg.setInputCloud(cloud_filtered_ptr_inliers);
+  seg.segment(*inliers, *coefficients);
+
+  if (inliers->indices.size() == 0) {
+    std::cerr << "Could not estimate a plane model for the given dataset." << std::endl;
+    // break;
+  }
+
+  // Extract the inliers - plane
+  extract.setInputCloud(cloud_filtered_ptr_inliers);
+  extract.setIndices(inliers);
+  extract.setNegative(false);
+  extract.filter(*cloud_p);
+  // std::cerr << "PointCloud representing the plane component: " << cloud_p->width * cloud_p->height << " data points." << std::endl;
+
+  // Create the filtering object - points without plane
+  extract.setNegative(true);
+  extract.filter(*cloud_f);
+  cloud_filtered_ptr_inliers.swap(cloud_f);
+  // } while (cloud_p->size() > plane_size_);
+
+  //----------------------------------------------------
+  // StatisticalOutlierRemoval Filter
+  //----------------------------------------------------
+  // Create the filtering object
+  pcl::StatisticalOutlierRemoval<pcl::PointXYZRGB> f;
+  // pass the input point cloud to the processing module
+  f.setInputCloud (cloud_p);
+  // set some parameters 
+  f.setMeanK (50); 
+  f.setStddevMulThresh (3.0);
+  // get the output point cloud
+  f.filter (*cloud_p);
+  // std::cerr << "PointCloud inliners: " << cloud_filtered_ptr_inliers->width * cloud_filtered_ptr_inliers->height << " data points." << std::endl;
+
+  // Create output pointcloud
+  pcl::PointCloud<pcl::PointXYZRGB> out_pointcloud = *cloud_p;
+
+  return out_pointcloud;
 }
 
 } // namespace perception_system
