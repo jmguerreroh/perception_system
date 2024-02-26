@@ -25,6 +25,8 @@ limitations under the License.
 #include "perception_system_interfaces/srv/extract_n_planes.hpp"
 #include "perception_system_interfaces/srv/isolate_pc_classes.hpp"
 #include "perception_system_interfaces/srv/extract_n_planes.hpp"
+#include "perception_system_interfaces/srv/remove_depth_classes.hpp"
+
 #include "yolov8_msgs/msg/detection_array.hpp"
 
 #include "lifecycle_msgs/msg/state.hpp"
@@ -73,11 +75,23 @@ private:
   void isolate_pc_classes_service_callback(
     const std::shared_ptr<perception_system_interfaces::srv::IsolatePCClasses::Request> request,
     std::shared_ptr<perception_system_interfaces::srv::IsolatePCClasses::Response> response);
+  void remove_classes_from_depth_callback(
+    const std::shared_ptr<perception_system_interfaces::srv::RemoveDepthClasses::Request> request,
+    std::shared_ptr<perception_system_interfaces::srv::RemoveDepthClasses::Response> response);
+  
+  cv::Mat createMask(const std::vector<std::vector<cv::Point>>& contours, 
+                    const cv::Size& size);
+  std::vector<std::vector<cv::Point>> getCountours(yolov8_msgs::msg::DetectionArray::ConstSharedPtr yolo_detection_msg);
+  bool are_registered(yolov8_msgs::msg::DetectionArray::ConstSharedPtr yolo_detection,
+                      sensor_msgs::msg::Image::ConstSharedPtr depth_image);
+
 
   rclcpp::Service<perception_system_interfaces::srv::ExtractNPlanes>::SharedPtr collison_service_;
   rclcpp::Service<perception_system_interfaces::srv::IsolatePCClasses>::SharedPtr isolate_pc_classes_service_;
+  rclcpp::Service<perception_system_interfaces::srv::RemoveDepthClasses>::SharedPtr remove_depth_classes_service_;
 
   rclcpp_lifecycle::LifecyclePublisher<sensor_msgs::msg::PointCloud2>::SharedPtr point_cloud_pub_;
+  rclcpp_lifecycle::LifecyclePublisher<sensor_msgs::msg::Image>::SharedPtr depth_pub_;
 
   rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr camera_info_sub_;
   message_filters::Subscriber<sensor_msgs::msg::PointCloud2, rclcpp_lifecycle::LifecycleNode> pc_sub_;

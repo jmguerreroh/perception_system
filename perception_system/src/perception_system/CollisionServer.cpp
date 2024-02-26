@@ -57,6 +57,9 @@ CollisionServer::on_configure(const rclcpp_lifecycle::State & state)
   isolate_pc_classes_service_ = create_service<perception_system_interfaces::srv::IsolatePCClasses>(
     "isolate_pc_classes", std::bind(&CollisionServer::isolate_pc_classes_service_callback, this, _1, _2));
 
+  remove_depth_classes_service_ = create_service<perception_system_interfaces::srv::RemoveDepthClasses>(
+    "remove_classes_from_depth", std::bind(&CollisionServer::remove_classes_from_depth_callback, this, _1, _2));
+
   camera_info_sub_ = create_subscription<sensor_msgs::msg::CameraInfo>(
     "depth_info",1,
     std::bind(&CollisionServer::depth_info_cb, this, std::placeholders::_1));
@@ -71,7 +74,9 @@ CollisionServer::on_configure(const rclcpp_lifecycle::State & state)
   // latched topic  
   point_cloud_pub_ = create_publisher<sensor_msgs::msg::PointCloud2>(
     "pointcloud_filtered", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable());
-
+  depth_pub_ = create_publisher<sensor_msgs::msg::Image>(
+    "depth_filtered", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable());
+    
   return CallbackReturn::SUCCESS;
 }
 
@@ -94,7 +99,7 @@ CollisionServer::on_deactivate(const rclcpp_lifecycle::State & state)
   state.label().c_str());
 
   point_cloud_pub_->on_deactivate();
-
+  depth_pub_->on_deactivate();
   return CallbackReturn::SUCCESS;
 }
 
@@ -107,7 +112,7 @@ CollisionServer::on_cleanup(const rclcpp_lifecycle::State & state)
 
   point_cloud_pub_.reset();
   collison_service_.reset();
-  collison_service_.reset();
+  depth_pub_.reset();
   return CallbackReturn::SUCCESS;
 }
 
@@ -134,6 +139,7 @@ CollisionServer::sync_cb(const sensor_msgs::msg::PointCloud2::ConstSharedPtr& pc
                          const sensor_msgs::msg::Image::ConstSharedPtr& depth_msg,                
                          const yolov8_msgs::msg::DetectionArray::ConstSharedPtr& yolo_result_msg)
 {
+  RCLCPP_INFO(get_logger(), "[%s] Sync Callback (new message) state...", get_name());
   last_pc_ = pc_msg;
   last_depth_image_ = depth_msg;
   last_yolo_ = yolo_result_msg;
@@ -143,6 +149,13 @@ void CollisionServer::depth_info_cb(sensor_msgs::msg::CameraInfo info_msg)
 {
   cam_model_.fromCameraInfo(info_msg);
   camera_info_sub_ = nullptr;
+}
+
+
+bool CollisionServer::are_registered(yolov8_msgs::msg::DetectionArray::ConstSharedPtr yolo_detection,
+                                     sensor_msgs::msg::Image::ConstSharedPtr depth_image)
+{
+  return yolo_detection->header.frame_id == depth_image->header.frame_id;
 }
 
 void CollisionServer::collision_service_callback(
@@ -162,6 +175,13 @@ void CollisionServer::collision_service_callback(
       "No point cloud received, cannot process collision extraction");    
     return;
   }
+    if (!are_registered(last_yolo_, last_depth_image_)) {
+    RCLCPP_WARN(
+      get_logger(),
+      "The yolo detection and depth frame are not registered!");
+    return;
+  }
+    
   pcl::PointCloud<pcl::PointXYZRGB> pointcloud;
   pcl::fromROSMsg(*last_pc_, pointcloud);
 
@@ -176,6 +196,98 @@ void CollisionServer::collision_service_callback(
   response->success = true;
 
   point_cloud_pub_->publish(filtered_pc_);
+}
+
+cv::Mat CollisionServer::createMask(const std::vector<std::vector<cv::Point>>& contours, 
+                                    const cv::Size& size)
+{
+  cv::Mat mask = cv::Mat::zeros(size, CV_32SC1) * std::numeric_limits<int>::max();
+
+  // cv::Mat mask = cv::Mat::zeros(size, CV_32SC1) * std::numeric_limits<cv::CV_32SC1>::max(); 
+  cv::drawContours(mask, contours, -1, cv::Scalar(255), cv::FILLED);
+  return mask;
+}
+std::vector<std::vector<cv::Point>> CollisionServer::getCountours(yolov8_msgs::msg::DetectionArray::ConstSharedPtr yolo_detection_msg)
+{
+  std::vector<std::vector<cv::Point>> contours;
+  contours.reserve(yolo_detection_msg->detections.size()); 
+
+  for (const auto &detection : yolo_detection_msg->detections) {
+    std::vector<cv::Point> single_contour;
+    single_contour.reserve(detection.mask.data.size()); 
+
+    for (const auto &point : detection.mask.data) {
+      single_contour.push_back(cv::Point(point.x, point.y));
+    }
+  contours.push_back(single_contour);
+  }
+  return contours;
+}
+
+
+void CollisionServer::remove_classes_from_depth_callback(
+  const std::shared_ptr<perception_system_interfaces::srv::RemoveDepthClasses::Request> request,
+  std::shared_ptr<perception_system_interfaces::srv::RemoveDepthClasses::Response> response)
+{
+  if (get_current_state().id() != lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE) {
+      RCLCPP_WARN(
+        get_logger(),
+        "Received request but not in ACTIVE state, ignoring!");
+  }
+  if (last_pc_ == nullptr || last_yolo_ == nullptr || last_depth_image_ == nullptr) {  
+    response->success = false;
+    RCLCPP_ERROR(
+      get_logger(),
+      "No point cloud/yolo/depth received, cannot process collision extraction");    
+      if(last_pc_ == nullptr)
+      {
+        RCLCPP_ERROR(
+          get_logger(),
+          "No point cloud received, cannot process collision extraction");
+      }
+      if(last_yolo_ == nullptr)
+      {
+        RCLCPP_ERROR(
+          get_logger(),
+          "No yolo detection received, cannot process collision extraction");
+      }
+      if(last_depth_image_ == nullptr)
+      {
+        RCLCPP_ERROR(
+          get_logger(),
+          "No depth image received, cannot process collision extraction");
+      }
+    return;
+  }
+  
+  cv_bridge::CvImagePtr image_depth_ptr;
+  try {
+    image_depth_ptr = cv_bridge::toCvCopy(last_depth_image_, "32SC1");
+  } catch (cv_bridge::Exception & e) {
+    std::cout << "cv_bridge exception: " << e.what() << std::endl;
+    return ;
+  }
+
+  std::vector<std::vector<cv::Point>> contours = getCountours(last_yolo_);
+  
+  cv::Mat mask = createMask(contours, image_depth_ptr->image.size());
+  
+  image_depth_ptr->image.setTo(0, mask);
+
+  // sensor_msgs::msg::Image filtered_depth_msg;
+  // image_depth_ptr->toImageMsg(filtered_depth_msg);  
+
+  // sensor_msgs::msg::Image::SharedPtr filtered_depth_msg = image_depth_ptr->toImageMsg();
+  // point_cloud_pub_->publish(filtered_depth_msg);
+  // sensor_msgs::ImagePtr msg1 = image_depth_ptr->toImageMsg();
+  sensor_msgs::msg::Image::SharedPtr image_msg = image_depth_ptr->toImageMsg();
+  depth_pub_->publish(*image_msg);
+
+
+  // depth_pub_->publish(imae_depthg_ptr->toImageMsg());
+  // response->depth_filtered = image_depth_ptr->toImageMsg();
+  // response->success = true;
+  
 }
 
 void CollisionServer::isolate_pc_classes_service_callback(
