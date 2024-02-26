@@ -16,7 +16,8 @@ set(dependencies
 )
 
 set(srv_interfaces
-    srv/ExtractCollision.srv
+    srv/ExtractNPlanes.srv
+    srv/IsolatePCClasses.srv
 )
 
 # set(action_interfaces

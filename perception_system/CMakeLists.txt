@@ -16,18 +16,19 @@ find_package(rclcpp_lifecycle REQUIRED)
 find_package(rclcpp_cascade_lifecycle REQUIRED)
 # find_package(image_transport REQUIRED)
 find_package(cv_bridge REQUIRED)
-# find_package(sensor_msgs REQUIRED)
+find_package(vision_msgs REQUIRED)
 # find_package(std_msgs REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(PCL 1.8 REQUIRED QUIET)
 find_package(pcl_conversions REQUIRED)
-# find_package(image_geometry REQUIRED)
+find_package(image_geometry REQUIRED)
 # find_package(depth_image_proc REQUIRED)
 find_package(Eigen3 REQUIRED)
-# find_package(message_filters REQUIRED)
+find_package(message_filters REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(perception_system_interfaces REQUIRED)
+find_package(tf2_eigen REQUIRED)
 # find_package(Python COMPONENTS Interpreter Development)
 # find_package(pybind11 REQUIRED)
 # find_package(tf2_geometry_msgs REQUIRED)
@@ -47,6 +48,7 @@ set(dependencies
   lifecycle_msgs
   rclcpp_lifecycle
   rclcpp_cascade_lifecycle
+  vision_msgs
   # image_transport
   cv_bridge
   # sensor_msgs
@@ -54,11 +56,12 @@ set(dependencies
   OpenCV
   PCL
   pcl_conversions
-  # image_geometry
+  image_geometry
   # depth_image_proc
   Eigen3
-  # message_filters
+  message_filters
   tf2_ros
+  tf2_eigen
   geometry_msgs
   # pybind11
   # tf2_geometry_msgs

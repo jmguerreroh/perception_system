@@ -1,0 +1,4 @@
+uint8 n_planes
+---
+bool success   # indicate successful run of triggered service
+sensor_msgs/PointCloud2 filtered_pc  # point cloud of collision points

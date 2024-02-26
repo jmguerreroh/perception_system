@@ -18,12 +18,20 @@ limitations under the License.
 #define COLLISION_SERVER_HPP_
 
 #include "rclcpp/rclcpp.hpp"
+#include "memory"
 
 #include "sensor_msgs/msg/point_cloud2.hpp"
-#include "perception_system_interfaces/srv/extract_collision.hpp"
+#include "sensor_msgs/msg/camera_info.hpp"
+#include "perception_system_interfaces/srv/extract_n_planes.hpp"
+#include "perception_system_interfaces/srv/isolate_pc_classes.hpp"
+#include "perception_system_interfaces/srv/extract_n_planes.hpp"
+#include "yolov8_msgs/msg/detection_array.hpp"
 
 #include "lifecycle_msgs/msg/state.hpp"
 #include "rclcpp_cascade_lifecycle/rclcpp_cascade_lifecycle.hpp"
+#include <message_filters/subscriber.h>
+#include <message_filters/sync_policies/approximate_time.h>
+#include <image_geometry/pinhole_camera_model.h>
 
 #include <opencv2/opencv.hpp>
 #include <cv_bridge/cv_bridge.h>
@@ -36,6 +44,10 @@ namespace perception_system
 
 using CallbackReturn =
   rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
+
+using ApproximateSyncPolicy = message_filters::sync_policies::ApproximateTime<sensor_msgs::msg::PointCloud2,
+                                                      sensor_msgs::msg::Image,
+                                                      yolov8_msgs::msg::DetectionArray>;
 
 class CollisionServer : public rclcpp_cascade_lifecycle::CascadeLifecycleNode
 {
@@ -51,19 +63,36 @@ public:
   CallbackReturn on_error(const rclcpp_lifecycle::State & state);
 
 private:
-  void pc_callback(sensor_msgs::msg::PointCloud2::UniquePtr msg);
+  void depth_info_cb(sensor_msgs::msg::CameraInfo info_msg);
+  void sync_cb(const sensor_msgs::msg::PointCloud2::ConstSharedPtr& pc_msg,
+               const sensor_msgs::msg::Image::ConstSharedPtr& depth_msg,                
+               const yolov8_msgs::msg::DetectionArray::ConstSharedPtr& yolo_result_msg);
   void collision_service_callback(
-    const std::shared_ptr<perception_system_interfaces::srv::ExtractCollision::Request> request,
-    std::shared_ptr<perception_system_interfaces::srv::ExtractCollision::Response> response);
+    const std::shared_ptr<perception_system_interfaces::srv::ExtractNPlanes::Request> request,
+    std::shared_ptr<perception_system_interfaces::srv::ExtractNPlanes::Response> response);
+  void isolate_pc_classes_service_callback(
+    const std::shared_ptr<perception_system_interfaces::srv::IsolatePCClasses::Request> request,
+    std::shared_ptr<perception_system_interfaces::srv::IsolatePCClasses::Response> response);
 
-  rclcpp::Service<perception_system_interfaces::srv::ExtractCollision>::SharedPtr collison_service_;
+  rclcpp::Service<perception_system_interfaces::srv::ExtractNPlanes>::SharedPtr collison_service_;
+  rclcpp::Service<perception_system_interfaces::srv::IsolatePCClasses>::SharedPtr isolate_pc_classes_service_;
 
-  rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr point_cloud_sub_;
   rclcpp_lifecycle::LifecyclePublisher<sensor_msgs::msg::PointCloud2>::SharedPtr point_cloud_pub_;
 
-  sensor_msgs::msg::PointCloud2::UniquePtr last_pc_;
-  sensor_msgs::msg::PointCloud2 filtered_pc_;
+  rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr camera_info_sub_;
+  message_filters::Subscriber<sensor_msgs::msg::PointCloud2, rclcpp_lifecycle::LifecycleNode> pc_sub_;
+  message_filters::Subscriber<sensor_msgs::msg::Image, rclcpp_lifecycle::LifecycleNode> depth_sub_;
+  message_filters::Subscriber<yolov8_msgs::msg::DetectionArray, rclcpp_lifecycle::LifecycleNode> yolo_result_sub_;
 
+  std::shared_ptr<message_filters::Synchronizer<ApproximateSyncPolicy>> sync_;
+
+  sensor_msgs::msg::PointCloud2::ConstSharedPtr last_pc_;
+  yolov8_msgs::msg::DetectionArray::ConstSharedPtr last_yolo_;
+  sensor_msgs::msg::Image::ConstSharedPtr last_depth_image_;
+  
+  image_geometry::PinholeCameraModel cam_model_;
+  std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
+  std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
 };
 
 }  // namespace perception_system
