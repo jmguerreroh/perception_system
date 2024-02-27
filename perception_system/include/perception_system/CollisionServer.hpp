@@ -46,8 +46,8 @@ using CallbackReturn =
   rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 
 using ApproximateSyncPolicy = message_filters::sync_policies::ApproximateTime<sensor_msgs::msg::PointCloud2,
-                                                      sensor_msgs::msg::Image,
-                                                      yolov8_msgs::msg::DetectionArray>;
+    sensor_msgs::msg::Image,
+    yolov8_msgs::msg::DetectionArray>;
 
 class CollisionServer : public rclcpp_cascade_lifecycle::CascadeLifecycleNode
 {
@@ -63,36 +63,58 @@ public:
   CallbackReturn on_error(const rclcpp_lifecycle::State & state);
 
 private:
+  // Callbacks
   void depth_info_cb(sensor_msgs::msg::CameraInfo info_msg);
-  void sync_cb(const sensor_msgs::msg::PointCloud2::ConstSharedPtr& pc_msg,
-               const sensor_msgs::msg::Image::ConstSharedPtr& depth_msg,                
-               const yolov8_msgs::msg::DetectionArray::ConstSharedPtr& yolo_result_msg);
-  void collision_service_callback(
+  void sync_cb(
+    const sensor_msgs::msg::PointCloud2::ConstSharedPtr & pc_msg,
+    const sensor_msgs::msg::Image::ConstSharedPtr & depth_msg,
+    const yolov8_msgs::msg::DetectionArray::ConstSharedPtr & yolo_result_msg);
+  void extract_n_planes_callback(
     const std::shared_ptr<perception_system_interfaces::srv::ExtractNPlanes::Request> request,
     std::shared_ptr<perception_system_interfaces::srv::ExtractNPlanes::Response> response);
   void isolate_pc_classes_service_callback(
     const std::shared_ptr<perception_system_interfaces::srv::IsolatePCClasses::Request> request,
     std::shared_ptr<perception_system_interfaces::srv::IsolatePCClasses::Response> response);
+  void isolate_pc_classes_service_callback(
+    const std::shared_ptr<perception_system_interfaces::srv::IsolatePCClasses::Request> request,
+    std::shared_ptr<perception_system_interfaces::srv::IsolatePCClasses::Response> response);
 
-  rclcpp::Service<perception_system_interfaces::srv::ExtractNPlanes>::SharedPtr collison_service_;
-  rclcpp::Service<perception_system_interfaces::srv::IsolatePCClasses>::SharedPtr isolate_pc_classes_service_;
+  // Ros related members
+  rclcpp::Service<perception_system_interfaces::srv::ExtractNPlanes>::SharedPtr 
+    extract_n_planes_service_;
+  rclcpp::Service<perception_system_interfaces::srv::IsolatePCClasses>::SharedPtr
+    isolate_pc_classes_service_;
 
   rclcpp_lifecycle::LifecyclePublisher<sensor_msgs::msg::PointCloud2>::SharedPtr point_cloud_pub_;
 
   rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr camera_info_sub_;
-  message_filters::Subscriber<sensor_msgs::msg::PointCloud2, rclcpp_lifecycle::LifecycleNode> pc_sub_;
+  message_filters::Subscriber<sensor_msgs::msg::PointCloud2,
+    rclcpp_lifecycle::LifecycleNode> pc_sub_;
   message_filters::Subscriber<sensor_msgs::msg::Image, rclcpp_lifecycle::LifecycleNode> depth_sub_;
-  message_filters::Subscriber<yolov8_msgs::msg::DetectionArray, rclcpp_lifecycle::LifecycleNode> yolo_result_sub_;
+  message_filters::Subscriber<yolov8_msgs::msg::DetectionArray,
+    rclcpp_lifecycle::LifecycleNode> yolo_result_sub_;
 
   std::shared_ptr<message_filters::Synchronizer<ApproximateSyncPolicy>> sync_;
 
   sensor_msgs::msg::PointCloud2::ConstSharedPtr last_pc_;
   yolov8_msgs::msg::DetectionArray::ConstSharedPtr last_yolo_;
   sensor_msgs::msg::Image::ConstSharedPtr last_depth_image_;
-  
+
   image_geometry::PinholeCameraModel cam_model_;
+
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
+
+  // Parameters
+  std::string point_cloud_topic_;
+  std::string depth_image_topic_;
+  std::string yolo_result_topic_;
+  std::string camera_info_topic_;
+
+  float cluster_tolerance_;
+  float voxel_leaf_size_;
+  int min_cluster_size_;
+  int max_cluster_size_;
 };
 
 }  // namespace perception_system

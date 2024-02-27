@@ -131,7 +131,7 @@ void ColorPersonNode::callback(
   cv_bridge::CvImagePtr image_rgb_ptr;
   try {
     image_rgb_ptr = cv_bridge::toCvCopy(
-      global_detection.source_img,
+      msg->source_img,
       sensor_msgs::image_encodings::BGR8);
   } catch (cv_bridge::Exception & e) {
     RCLCPP_ERROR(get_logger(), "cv_bridge exception: %s", e.what());
@@ -202,7 +202,7 @@ void ColorPersonNode::callback(
     cv_bridge::CvImagePtr image_rgb_ptr;
     try {
       image_rgb_ptr = cv_bridge::toCvCopy(
-        global_detection.source_img,
+        msg->source_img,
         sensor_msgs::image_encodings::BGR8);
     } catch (cv_bridge::Exception & e) {
       RCLCPP_ERROR(get_logger(), "cv_bridge exception: %s", e.what());

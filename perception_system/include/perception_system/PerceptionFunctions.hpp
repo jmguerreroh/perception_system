@@ -127,12 +127,14 @@ inline cv::Point2d checkPoint(cv::Point2d point, cv::Size size)
   return point;
 }
 
-inline int64_t getUniqueIDFromDetection(const yolov8_msgs::msg::Detection & detection)
+inline int64_t getUniqueIDFromDetection(
+  const sensor_msgs::msg::Image & img,
+  const yolov8_msgs::msg::Detection & detection)
 {
   // Convert sensor_msgs::Image to cv::Mat using cv_bridge
   cv_bridge::CvImagePtr image_rgb_ptr;
   try {
-    image_rgb_ptr = cv_bridge::toCvCopy(detection.source_img, sensor_msgs::image_encodings::BGR8);
+    image_rgb_ptr = cv_bridge::toCvCopy(img, sensor_msgs::image_encodings::BGR8);
   } catch (cv_bridge::Exception & e) {
     std::cout << "cv_bridge exception: " << e.what() << std::endl;
     return -1;
@@ -189,62 +191,53 @@ inline float diffIDs(int64_t id1, ino64_t id2)
 }
 
 inline pcl::PointCloud<pcl::PointXYZRGB> extractNPlanes(
-    const pcl::PointCloud<pcl::PointXYZRGB> in_pointcloud, const int & number_of_planes)
+  const pcl::PointCloud<pcl::PointXYZRGB> in_pointcloud, const int & number_of_planes)
 {
- pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZRGB>);
- pcl::copyPointCloud(in_pointcloud, *cloud_filtered);
-
-  // Create the filtering object
-  pcl::VoxelGrid<pcl::PointXYZRGB> sor;
-  sor.setInputCloud(cloud_filtered);
-  sor.setLeafSize(0.01, 0.01, 0.01);
-
-  // Filter the input point cloud
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_filtered_ptr_inliers(new pcl::PointCloud<pcl::PointXYZRGB>);
-  sor.filter(*cloud_filtered_ptr_inliers);
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZRGB>);
+  pcl::copyPointCloud(in_pointcloud, *cloud_filtered);
 
   // Create the output point cloud
   pcl::PointCloud<pcl::PointXYZRGB> out_pointcloud;
 
-  // Set the number of planes 
+  // Set the number of planes
   for (int i = 0; i < number_of_planes; ++i) {
-      // Create the segmentation object
-      pcl::SACSegmentation<pcl::PointXYZRGB> seg;
-      seg.setOptimizeCoefficients(true);
-      seg.setModelType(pcl::SACMODEL_PLANE);
-      seg.setMethodType(pcl::SAC_RANSAC);
-      seg.setMaxIterations(1000);
-      seg.setDistanceThreshold(0.01);
+    // Create the segmentation object
+    pcl::SACSegmentation<pcl::PointXYZRGB> seg;
+    seg.setOptimizeCoefficients(true);
+    seg.setModelType(pcl::SACMODEL_PLANE);
+    seg.setMethodType(pcl::SAC_RANSAC);
+    seg.setMaxIterations(1000);
+    seg.setDistanceThreshold(0.01);
 
-      // Create the filtering object
-      pcl::ExtractIndices<pcl::PointXYZRGB> extract;
-      pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_p(new pcl::PointCloud<pcl::PointXYZRGB>);
-      pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_f(new pcl::PointCloud<pcl::PointXYZRGB>);
+    // Create the filtering object
+    pcl::ExtractIndices<pcl::PointXYZRGB> extract;
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_p(new pcl::PointCloud<pcl::PointXYZRGB>);
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_f(new pcl::PointCloud<pcl::PointXYZRGB>);
 
-      seg.setInputCloud(cloud_filtered_ptr_inliers);
-      pcl::PointIndices::Ptr inliers(new pcl::PointIndices());
-      pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients());
-      
-      // Segment the largest plane
-      seg.segment(*inliers, *coefficients);
+    seg.setInputCloud(cloud_filtered);
+    pcl::PointIndices::Ptr inliers(new pcl::PointIndices());
+    pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients());
 
-      if (inliers->indices.size() == 0) {
-          std::cerr << "Could not estimate a plane model for the given dataset." << std::endl;
-          break;  // Break the loop if no plane is found
-      }
+    // Segment the largest plane
+    seg.segment(*inliers, *coefficients);
 
-      // Extract the inliers - plane
-      extract.setInputCloud(cloud_filtered_ptr_inliers);
-      extract.setIndices(inliers);
-      extract.setNegative(false);
-      extract.filter(*cloud_p);
+    if (inliers->indices.size() == 0) {
+      std::cerr << "Could not estimate a plane model for the given dataset." << std::endl;
+      break;      // Break the loop if no plane is found
+    }
 
-      // Add the extracted plane to the output point cloud
-      out_pointcloud += *cloud_p;
+    // Extract the inliers - plane
+    extract.setInputCloud(cloud_filtered);
+    extract.setIndices(inliers);
+    extract.setNegative(false);
+    extract.filter(*cloud_p);
 
-      // Remove the inliers from the input cloud to find the next plane
-      extract.setNegative(true);
-      extract.filter(*cloud_filtered_ptr_inliers);
+    // Add the extracted plane to the output point cloud
+    out_pointcloud += *cloud_p;
+
+    // Remove the inliers from the input cloud to find the next plane
+    extract.setNegative(true);
+    extract.filter(*cloud_filtered);
   }
 
   // Perform StatisticalOutlierRemoval on the final output point cloud if needed
@@ -255,16 +248,18 @@ inline pcl::PointCloud<pcl::PointXYZRGB> extractNPlanes(
   f.filter(out_pointcloud);
 
   return out_pointcloud;
-  }
+}
 
-inline pcl::PointCloud<pcl::PointXYZ>::Ptr
-downsampleCloudMsg(const sensor_msgs::msg::PointCloud2::ConstSharedPtr& cloud_msg, const double& voxel_leaf_size_)
+inline pcl::PointCloud<pcl::PointXYZRGB>::Ptr
+downsampleCloudMsg(
+  const sensor_msgs::msg::PointCloud2::ConstSharedPtr & cloud_msg,
+  const double & voxel_leaf_size_)
 {
-  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
   pcl::fromROSMsg(*cloud_msg, *cloud);
 
-  pcl::PointCloud<pcl::PointXYZ>::Ptr downsampled_cloud(new pcl::PointCloud<pcl::PointXYZ>());
-  pcl::VoxelGrid<pcl::PointXYZ>::Ptr voxel_grid(new pcl::VoxelGrid<pcl::PointXYZ>());
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr downsampled_cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
+  pcl::VoxelGrid<pcl::PointXYZRGB>::Ptr voxel_grid(new pcl::VoxelGrid<pcl::PointXYZRGB>());
   voxel_grid->setInputCloud(cloud);
   voxel_grid->setLeafSize(voxel_leaf_size_, voxel_leaf_size_, voxel_leaf_size_);
   voxel_grid->filter(*downsampled_cloud);
@@ -272,12 +267,15 @@ downsampleCloudMsg(const sensor_msgs::msg::PointCloud2::ConstSharedPtr& cloud_ms
   return downsampled_cloud;
 }
 
-inline pcl::PointCloud<pcl::PointXYZ>::Ptr
-euclideanClusterExtraction(const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, const double& cluster_tolerance_, const uint16_t& min_cluster_size_, const uint16_t& max_cluster_size_) 
+inline pcl::PointCloud<pcl::PointXYZRGB>::Ptr
+euclideanClusterExtraction(
+  const pcl::PointCloud<pcl::PointXYZRGB>::Ptr & cloud,
+  const double & cluster_tolerance_, const uint16_t & min_cluster_size_,
+  const uint16_t & max_cluster_size_)
 {
-  pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZ>());
+  pcl::search::KdTree<pcl::PointXYZRGB>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZRGB>());
   std::vector<pcl::PointIndices> cluster_indices;
-  pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
+  pcl::EuclideanClusterExtraction<pcl::PointXYZRGB> ec;
   ec.setClusterTolerance(cluster_tolerance_);
   ec.setMinClusterSize(min_cluster_size_);
   ec.setMaxClusterSize(max_cluster_size_);
@@ -286,13 +284,11 @@ euclideanClusterExtraction(const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, con
   ec.extract(cluster_indices);
 
   float min_distance = std::numeric_limits<float>::max();
-  pcl::PointCloud<pcl::PointXYZ>::Ptr closest_cluster(new pcl::PointCloud<pcl::PointXYZ>());
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr closest_cluster(new pcl::PointCloud<pcl::PointXYZRGB>());
 
-  for (const auto& cluster : cluster_indices)
-  {
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_cluster(new pcl::PointCloud<pcl::PointXYZ>());
-    for (const auto& indice : cluster.indices)
-    {
+  for (const auto & cluster : cluster_indices) {
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_cluster(new pcl::PointCloud<pcl::PointXYZRGB>());
+    for (const auto & indice : cluster.indices) {
       cloud_cluster->push_back((*cloud)[indice]);
     }
 
@@ -300,8 +296,7 @@ euclideanClusterExtraction(const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, con
     pcl::compute3DCentroid(*cloud_cluster, centroid);
     float distance = centroid.norm();
 
-    if (distance < min_distance)
-    {
+    if (distance < min_distance) {
       min_distance = distance;
       *closest_cluster = *cloud_cluster;
     }
@@ -310,71 +305,33 @@ euclideanClusterExtraction(const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, con
   return closest_cluster;
 }
 
-inline void
-transformPointCloud(const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud_in,
-                    pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud_out,
-                    const Eigen::Affine3f& transform)
+inline pcl::PointCloud<pcl::PointXYZRGB>::Ptr
+processPointsWithBbox(
+  const pcl::PointCloud<pcl::PointXYZRGB>::Ptr & cloud,
+  const yolov8_msgs::msg::Detection & detection2d_msg,
+  const image_geometry::PinholeCameraModel & cam_model_)
 {
-  int cloud_size = cloud_in->size();
-  cloud_out->resize(cloud_size);
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr ret(new pcl::PointCloud<pcl::PointXYZRGB>());
 
-  for (int i = 0; i < cloud_size; i++)
-  {
-    const auto& point = cloud_in->points[i];
-    cloud_out->points[i].x =
-        transform(0, 0) * point.x + transform(0, 1) * point.y + transform(0, 2) * point.z + transform(0, 3);
-    cloud_out->points[i].y =
-        transform(1, 0) * point.x + transform(1, 1) * point.y + transform(1, 2) * point.z + transform(1, 3);
-    cloud_out->points[i].z =
-        transform(2, 0) * point.x + transform(2, 1) * point.y + transform(2, 2) * point.z + transform(2, 3);
-  }
-}
-
-inline pcl::PointCloud<pcl::PointXYZ>::Ptr
-cloud2TransformedCloud(const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud,
-                       const std::shared_ptr<tf2_ros::Buffer>& tf_buffer_,
-                       const std::string& source_frame, const std::string& target_frame
-                      )
-{
-  try
-  {
-    geometry_msgs::msg::TransformStamped tf_stamped = tf_buffer_->lookupTransform(target_frame, source_frame, tf2::TimePointZero);
-    Eigen::Affine3f eigen_transform = tf2::transformToEigen(tf_stamped.transform).cast<float>();
-    pcl::PointCloud<pcl::PointXYZ>::Ptr transformed_cloud(new pcl::PointCloud<pcl::PointXYZ>());
-    transformPointCloud(cloud, transformed_cloud, eigen_transform);
-
-    return transformed_cloud;
-  }
-  catch (tf2::TransformException& e)
-  {
-    std::cerr << e.what() << std::endl;
-    return cloud;
-  }
-}
-
-inline void
-processPointsWithBbox(const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud,
-                      const yolov8_msgs::msg::Detection& detection2d_msg,
-                      const image_geometry::PinholeCameraModel& cam_model_,
-                      pcl::PointCloud<pcl::PointXYZ>::Ptr& detection_cloud_raw)
-{
-  for (const auto& point : cloud->points)
-  {
+  for (const auto & point : cloud->points) {
     cv::Point3d pt_cv(point.x, point.y, point.z);
     cv::Point2d uv = cam_model_.project3dToPixel(pt_cv);
 
-    if (point.z > 0 && uv.x > 0 && uv.x >= detection2d_msg.bbox.center.position.x - detection2d_msg.bbox.size.x / 2 &&
-        uv.x <= detection2d_msg.bbox.center.position.x + detection2d_msg.bbox.size.x / 2 &&
-        uv.y >= detection2d_msg.bbox.center.position.y - detection2d_msg.bbox.size.y / 2 &&
-        uv.y <= detection2d_msg.bbox.center.position.y + detection2d_msg.bbox.size.y / 2)
+    if (point.z > 0 && uv.x > 0 &&
+      uv.x >= detection2d_msg.bbox.center.position.x - detection2d_msg.bbox.size.x / 2 &&
+      uv.x <= detection2d_msg.bbox.center.position.x + detection2d_msg.bbox.size.x / 2 &&
+      uv.y >= detection2d_msg.bbox.center.position.y - detection2d_msg.bbox.size.y / 2 &&
+      uv.y <= detection2d_msg.bbox.center.position.y + detection2d_msg.bbox.size.y / 2)
     {
-      detection_cloud_raw->points.push_back(point);
+      std::cout << "Point inside bbox" << std::endl;
+      ret->points.push_back(point);
     }
   }
+  return ret;
 }
 
 inline sensor_msgs::msg::Image
-maskToImageMsg(const yolov8_msgs::msg::Mask& mask_msg)
+maskToImageMsg(const yolov8_msgs::msg::Mask & mask_msg)
 {
   sensor_msgs::msg::Image image_msg;
 
@@ -383,130 +340,100 @@ maskToImageMsg(const yolov8_msgs::msg::Mask& mask_msg)
   image_msg.encoding = sensor_msgs::image_encodings::MONO8;
   image_msg.is_bigendian = false;
   image_msg.step = mask_msg.width;
-  
 
-  image_msg.data.resize(image_msg.width * image_msg.height);
-        for (const auto& point : mask_msg.data) {
-            // Assuming point.x and point.y are integers representing pixel coordinates
-            size_t pixel_index = static_cast<size_t>(point.y) * image_msg.width + static_cast<size_t>(point.x);
-            if (pixel_index < image_msg.data.size()) {  
-                image_msg.data[pixel_index] = 255;  
-            }
+
+  image_msg.data.resize(image_msg.width * image_msg.height, 0);
+
+  std::vector<cv::Point> contour;
+  for (const auto & point : mask_msg.data) {
+    contour.emplace_back(static_cast<int>(point.x), static_cast<int>(point.y));
   }
+  cv::Mat mask = cv::Mat::zeros(image_msg.height, image_msg.width, CV_8UC1);
+  cv::drawContours(
+    mask, std::vector<std::vector<cv::Point>>{contour}, 0, cv::Scalar(
+      255), cv::FILLED);
+  std::memcpy(image_msg.data.data(), mask.data, image_msg.data.size());
 
 
   return image_msg;
 }
 
 
-inline pcl::PointCloud<pcl::PointXYZ>::Ptr 
-processPointsWithMask(const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud,
-                      const yolov8_msgs::msg::Mask& mask_image_msg,
-                      const image_geometry::PinholeCameraModel& cam_model_
-                     )
+inline pcl::PointCloud<pcl::PointXYZRGB>::Ptr
+processPointsWithMask(
+  const pcl::PointCloud<pcl::PointXYZRGB>::Ptr & cloud,
+  const yolov8_msgs::msg::Mask & mask_image_msg,
+  const image_geometry::PinholeCameraModel & cam_model_
+)
 {
-  // sensor_msgs::msg::Image image_msg = maskToImageMsg(mask_image_msg);
-  // cv_bridge::CvImagePtr cv_ptr;
-  pcl::PointCloud<pcl::PointXYZ>::Ptr ret (new pcl::PointCloud<pcl::PointXYZ>());
+  sensor_msgs::msg::Image image_msg = maskToImageMsg(mask_image_msg);
+  cv_bridge::CvImagePtr cv_ptr;
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr ret(new pcl::PointCloud<pcl::PointXYZRGB>());
 
-  // try
-  // {
-  //   cv_ptr = cv_bridge::toCvCopy(image_msg, sensor_msgs::image_encodings::MONO8);
-  // }
-  // catch (cv_bridge::Exception& e)
-  // {
-  //   std::cerr << e.what()<< std::endl;
-  //   return ret;
-  // }
-  // std::cout << "Image converted from msg to cv" << std::endl;
-  // cv::imshow("mask", cv_ptr->image);
-  // cv::waitKey(0);
+  try {
+    cv_ptr = cv_bridge::toCvCopy(image_msg, sensor_msgs::image_encodings::MONO8);
+  } catch (cv_bridge::Exception & e) {
+    std::cerr << e.what() << std::endl;
+    return ret;
+  }
 
-  for (const auto& point : cloud->points)
-  {
-    // std::cout << "Translading points from image to pc" << std::endl; it enteres to it
+  for (const auto & point : cloud->points) {
     cv::Point3d pt_cv(point.x, point.y, point.z);
     cv::Point2d uv = cam_model_.project3dToPixel(pt_cv);
 
-    if (point.z > 0 && uv.x >= 0 && uv.x < mask_image_msg.width && uv.y >= 0 && uv.y < mask_image_msg.height)
+    if (point.z > 0 && uv.x >= 0 && uv.x < mask_image_msg.width && uv.y >= 0 &&
+      uv.y < mask_image_msg.height)
     {
-      // std::cout << "point inside the image" << std::endl;
-      auto it = std::find_if(mask_image_msg.data.begin(), mask_image_msg.data.end(), [&uv](yolov8_msgs::msg::Point2D point) {
-        // std::cout << "Comparing points" << std::endl;
-        std::cout << "point.x: " << point.x << " uv.x: " << uv.x << " point.y: " << point.y << " uv.y: " << uv.y << std::endl;
-        return point.x == uv.x && point.y == uv.y;      
-      });
-      if (it != mask_image_msg.data.end())
-      {
-        std::cout << "segmeting one point of the pc" << std::endl;
+      if (cv_ptr->image.at<uchar>(cv::Point(uv.x, uv.y)) > 0) {
         ret->points.push_back(point);
       }
-      
-
-      // std::cout << "point is in image mask at" << std::endl;
-      // if (cv_ptr->image.at<uchar>(cv::Point(uv.x, uv.y)) > 0)
-      // {
-      //   std::cout << "pushing points into the new pc" << std::endl;
-      //   ret->points.push_back(point);
-      // }
     }
   }
   return ret;
 }
 
-inline sensor_msgs::msg::PointCloud2 
-projectCloud(const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud,
-            const yolov8_msgs::msg::DetectionArray::ConstSharedPtr& yolo_result_msg,
-            const image_geometry::PinholeCameraModel& cam_model_,
-            const std::shared_ptr<tf2_ros::Buffer>& tf_buffer_,
-            const double& cluster_tolerance_,
-            const uint16_t& min_cluster_size_,
-            const uint16_t& max_cluster_size_,
-            const std_msgs::msg::Header& header
-           )
+inline sensor_msgs::msg::PointCloud2
+projectCloud(
+  const pcl::PointCloud<pcl::PointXYZRGB>::Ptr & cloud,
+  const yolov8_msgs::msg::DetectionArray::ConstSharedPtr & yolo_result_msg,
+  const image_geometry::PinholeCameraModel & cam_model_,
+  const double & cluster_tolerance_,
+  const uint16_t & min_cluster_size_,
+  const uint16_t & max_cluster_size_,
+  const std_msgs::msg::Header & header
+
+)
 {
   sensor_msgs::msg::PointCloud2 combine_detection_cloud_msg;
-  pcl::PointCloud<pcl::PointXYZ>::Ptr combine_detection_cloud(new pcl::PointCloud<pcl::PointXYZ>());
-  // detection3d_array_msg.header = header;
-  // detection3d_array_msg.header.stamp = yolo_result_msg->header.stamp;
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr combine_detection_cloud(
+    new pcl::PointCloud<pcl::PointXYZRGB>());
 
-  for (size_t i = 0; i < yolo_result_msg->detections.size(); i++)
-  {
-    std::cout << "Processing yolo detections" << std::endl;
-    pcl::PointCloud<pcl::PointXYZ>::Ptr detection_cloud_raw(new pcl::PointCloud<pcl::PointXYZ>());
+  for (size_t i = 0; i < yolo_result_msg->detections.size(); i++) {
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr detection_cloud_raw(
+      new pcl::PointCloud<pcl::PointXYZRGB>());
 
-    if (yolo_result_msg->detections[i].mask.data.empty())
-    {
-      std::cout << "Processing detection with bbox" << std::endl;
-      processPointsWithBbox(cloud, yolo_result_msg->detections[i], cam_model_,  detection_cloud_raw);
-    }
-    else
-    {
-      std::cout << "Processing detection with mask" << std::endl;
-      detection_cloud_raw =processPointsWithMask(cloud, yolo_result_msg->detections[i].mask, cam_model_);
+    if (yolo_result_msg->detections[i].mask.data.empty()) {
+      detection_cloud_raw =
+        processPointsWithBbox(cloud, yolo_result_msg->detections[i], cam_model_);
+    } else {
+      std::cout << "Processing mask" << std::endl;
+      detection_cloud_raw = processPointsWithMask(
+        cloud, yolo_result_msg->detections[i].mask,
+        cam_model_);
     }
 
-    if (!detection_cloud_raw->points.empty())
-    {
-      // pcl::PointCloud<pcl::PointXYZ>::Ptr detection_cloud(new pcl::PointCloud<pcl::PointXYZ>());
-      // detection_cloud =
-      //     cloud2TransformedCloud(detection_cloud_raw, tf_buffer_, cam_model_.tfFrame(), header.frame_id);
-
-      pcl::PointCloud<pcl::PointXYZ>::Ptr closest_detection_cloud(new pcl::PointCloud<pcl::PointXYZ>());
-      closest_detection_cloud = euclideanClusterExtraction(detection_cloud_raw, cluster_tolerance_, min_cluster_size_, max_cluster_size_);
-      *combine_detection_cloud += *closest_detection_cloud;
-
-      // createBoundingBox(detection3d_array_msg, closest_detection_cloud,
-      //                   yolo_result_msg->.detections[i].results);
+    if (!detection_cloud_raw->points.empty()) {
+      pcl::PointCloud<pcl::PointXYZRGB>::Ptr closest_detection_cloud(
+        new pcl::PointCloud<pcl::PointXYZRGB>());
+      closest_detection_cloud = euclideanClusterExtraction(
+        detection_cloud_raw, cluster_tolerance_,
+        min_cluster_size_, max_cluster_size_);
+      *combine_detection_cloud += *closest_detection_cloud;           
+    } else {
+      std::cerr << "Detection for " << yolo_result_msg->detections[i].class_name << " couldnt be processed" << std::endl;
     }
-    else
-    {
-      std::cerr << "Detection " << i << " couldnt be processed" << std::endl;
-    }
-    
   }
-
-  pcl::toROSMsg(*combine_detection_cloud, combine_detection_cloud_msg);
+  pcl::toROSMsg(*combine_detection_cloud, combine_detection_cloud_msg); 
   combine_detection_cloud_msg.header = header;
   return combine_detection_cloud_msg;
 }

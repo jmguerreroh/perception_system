@@ -111,13 +111,13 @@ void FollowPersonNode::callback(
 {
   // Find the person with the minimum difference
   auto global_detection = msg->detections[0];
-  int64_t global_unique_id = getUniqueIDFromDetection(global_detection);
+  int64_t global_unique_id = getUniqueIDFromDetection(msg->source_img, global_detection);
   float global_diff = diffIDs(unique_id_, global_unique_id);
 
   for (auto detection : msg->detections) {
 
     // Get the bounding box
-    int64_t id = getUniqueIDFromDetection(detection);
+    int64_t id = getUniqueIDFromDetection(msg->source_img, detection);
 
     float min_diff = diffIDs(unique_id_, id);
 
@@ -173,7 +173,7 @@ void FollowPersonNode::callback(
     cv_bridge::CvImagePtr image_rgb_ptr;
     try {
       image_rgb_ptr = cv_bridge::toCvCopy(
-        global_detection.source_img,
+        msg->source_img,
         sensor_msgs::image_encodings::BGR8);
     } catch (cv_bridge::Exception & e) {
       RCLCPP_ERROR(get_logger(), "cv_bridge exception: %s", e.what());
