@@ -7,14 +7,14 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
-# find_package(ament_index_cpp REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rclcpp_components REQUIRED)
 find_package(yolov8_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(lifecycle_msgs REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
 find_package(rclcpp_cascade_lifecycle REQUIRED)
-# find_package(image_transport REQUIRED)
+find_package(OpenCV REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(vision_msgs REQUIRED)
 # find_package(std_msgs REQUIRED)
@@ -41,8 +41,8 @@ add_definitions(${PCL_DEFINITIONS})
 
 set(dependencies
   ament_cmake
-  # ament_index_cpp
   rclcpp
+  rclcpp_components
   yolov8_msgs
   visualization_msgs
   lifecycle_msgs
@@ -51,6 +51,10 @@ set(dependencies
   vision_msgs
   # image_transport
   cv_bridge
+  tf2_ros
+  geometry_msgs  
+  # ament_index_cpp
+  # image_transport
   # sensor_msgs
   # std_msgs
   OpenCV
@@ -68,13 +72,6 @@ set(dependencies
   perception_system_interfaces
 )
 
-
-set(SOURCES 
-    src/${PROJECT_NAME}/ColorPersonNode.cpp
-    src/${PROJECT_NAME}/FollowPersonNode.cpp
-    include/${PROJECT_NAME}/PerceptionFunctions.hpp 
-)
-
 # OpenCV and PCL node
 include_directories(include)
 add_library(${PROJECT_NAME} SHARED
@@ -88,6 +85,13 @@ add_library(${PROJECT_NAME} SHARED
 )
 ament_target_dependencies(${PROJECT_NAME} ${dependencies})
 target_link_libraries(${PROJECT_NAME} ${PCL_LIBRARIES})
+
+rclcpp_components_register_nodes(${PROJECT_NAME} "perception_system::PeopleDetectionNode")
+rclcpp_components_register_nodes(${PROJECT_NAME} "perception_system::ObjectsDetectionNode")
+rclcpp_components_register_nodes(${PROJECT_NAME} "perception_system::PersonPointingNode")
+rclcpp_components_register_nodes(${PROJECT_NAME} "perception_system::FollowPersonNode")
+rclcpp_components_register_nodes(${PROJECT_NAME} "perception_system::ColorPersonNode")
+# rclcpp_components_register_nodes(${PROJECT_NAME} "perception_system::YoloNode")
 
 add_executable(dt_people src/people_detection_main.cpp)
 ament_target_dependencies(dt_people ${dependencies})

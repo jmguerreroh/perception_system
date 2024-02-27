@@ -45,7 +45,7 @@ using CallbackReturnT =
 class FollowPersonNode : public rclcpp_cascade_lifecycle::CascadeLifecycleNode
 {
 public:
-  FollowPersonNode();
+  FollowPersonNode(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
 
   CallbackReturnT on_configure(const rclcpp_lifecycle::State & state);
   CallbackReturnT on_activate(const rclcpp_lifecycle::State & state);

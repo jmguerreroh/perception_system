@@ -44,7 +44,7 @@ using CallbackReturnT =
 class ColorPersonNode : public rclcpp_cascade_lifecycle::CascadeLifecycleNode
 {
 public:
-  ColorPersonNode();
+  ColorPersonNode(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
 
   CallbackReturnT on_configure(const rclcpp_lifecycle::State & state);
   CallbackReturnT on_activate(const rclcpp_lifecycle::State & state);
