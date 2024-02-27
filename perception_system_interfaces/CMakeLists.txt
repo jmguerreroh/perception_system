@@ -18,6 +18,7 @@ set(dependencies
 set(srv_interfaces
     srv/ExtractNPlanes.srv
     srv/IsolatePCClasses.srv
+    srv/IsolatePCBackground.srv
 )
 
 # set(action_interfaces

@@ -17,6 +17,7 @@
 #include <memory>
 
 #include "perception_system/CollisionServer.hpp"
+#include <pcl/segmentation/segment_differences.h>
 
 
 using namespace std::chrono_literals;
@@ -77,6 +78,9 @@ CollisionServer::on_configure(const rclcpp_lifecycle::State & state)
   isolate_pc_classes_service_ = create_service<perception_system_interfaces::srv::IsolatePCClasses>(
     "isolate_pc_classes",
     std::bind(&CollisionServer::isolate_pc_classes_service_callback, this, _1, _2));
+  isolate_pc_background_service_ = create_service<perception_system_interfaces::srv::IsolatePCBackground>(
+    "isolate_pc_background",
+    std::bind(&CollisionServer::isolate_pc_background_service_callback, this, _1, _2));
 
   // Create subscribers
 
@@ -186,20 +190,18 @@ void CollisionServer::extract_n_planes_callback(
       "No point cloud received, cannot process collision extraction");
     return;
   }
-
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr downsampled_cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
   downsampled_cloud = downsampleCloudMsg(last_pc_, voxel_leaf_size_);
 
   auto plane = extractNPlanes(*downsampled_cloud, request->n_planes);
+
   sensor_msgs::msg::PointCloud2 filtered_pc_;
   pcl::toROSMsg(plane, filtered_pc_);
 
   filtered_pc_.header = last_pc_->header;
 
   response->filtered_pc = filtered_pc_;
-
   response->success = true;
-
   point_cloud_pub_->publish(filtered_pc_);
 }
 
@@ -223,7 +225,6 @@ void CollisionServer::isolate_pc_classes_service_callback(
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr downsampled_cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
 
   downsampled_cloud = downsampleCloudMsg(last_pc_, voxel_leaf_size_);
-
   sensor_msgs::msg::PointCloud2 detection_cloud_msg;
 
   detection_cloud_msg = projectCloud(
@@ -241,11 +242,79 @@ void CollisionServer::isolate_pc_classes_service_callback(
       get_logger(),
       "No detection cloud generated, cannot process collision extraction, try changing the parameters");
     return;
-  } 
+  }
   response->filtered_pc = detection_cloud_msg;
   response->success = true;
   point_cloud_pub_->publish(detection_cloud_msg);
-
 }
+
+void CollisionServer::isolate_pc_background_service_callback(
+  const std::shared_ptr<perception_system_interfaces::srv::IsolatePCBackground::Request> request,
+  std::shared_ptr<perception_system_interfaces::srv::IsolatePCBackground::Response> response)
+{
+  if (get_current_state().id() != lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE) {
+    RCLCPP_WARN(
+      get_logger(),
+      "Received request but not in ACTIVE state, ignoring!");
+  }
+
+  if (last_pc_ == nullptr || last_yolo_ == nullptr || last_depth_image_ == nullptr) {
+    response->success = false;
+    RCLCPP_ERROR(
+      get_logger(),
+      "No point cloud/yolo/depth received, cannot process collision extraction");
+    return;
+  }
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr downsampled_cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
+
+  downsampled_cloud = downsampleCloudMsg(last_pc_, voxel_leaf_size_);
+  sensor_msgs::msg::PointCloud2 detection_cloud_msg;
+
+  detection_cloud_msg = projectCloud(
+    downsampled_cloud,
+    last_yolo_,
+    cam_model_,
+    cluster_tolerance_,
+    min_cluster_size_,
+    max_cluster_size_,
+    last_pc_->header);
+
+  if (detection_cloud_msg.data.empty()) {
+    response->success = false;
+    RCLCPP_ERROR(
+      get_logger(),
+      "No detection cloud generated, cannot process collision extraction, try changing the parameters");
+    return;
+  }
+    // ... Populate your point clouds ...
+
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_diff(new pcl::PointCloud<pcl::PointXYZRGB>());
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr mask(new pcl::PointCloud<pcl::PointXYZRGB>());
+
+    pcl::fromROSMsg(detection_cloud_msg, *mask);
+
+    // Create the SegmentDifferences object
+    pcl::SegmentDifferences<pcl::PointXYZRGB> segment_diff;
+    segment_diff.setInputCloud(downsampled_cloud);
+    segment_diff.setTargetCloud(mask);
+
+    // Segment the differences
+    segment_diff.segment(*cloud_diff);
+
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr closest_detection_cloud(
+        new pcl::PointCloud<pcl::PointXYZRGB>());
+
+    closest_detection_cloud = euclideanClusterExtraction(
+      cloud_diff, 0.02,
+      min_cluster_size_, max_cluster_size_);
+
+    // Publish the difference
+    sensor_msgs::msg::PointCloud2 cloud_diff_msg;
+    pcl::toROSMsg(*closest_detection_cloud, cloud_diff_msg);
+    cloud_diff_msg.header = last_pc_->header;
+
+    point_cloud_pub_->publish(cloud_diff_msg);
+}
+
 
 }  // namespace perception_system

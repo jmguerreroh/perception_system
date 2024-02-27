@@ -363,7 +363,8 @@ inline pcl::PointCloud<pcl::PointXYZRGB>::Ptr
 processPointsWithMask(
   const pcl::PointCloud<pcl::PointXYZRGB>::Ptr & cloud,
   const yolov8_msgs::msg::Mask & mask_image_msg,
-  const image_geometry::PinholeCameraModel & cam_model_
+  const image_geometry::PinholeCameraModel & cam_model_,
+  bool is_inverse = false
 )
 {
   sensor_msgs::msg::Image image_msg = maskToImageMsg(mask_image_msg);
@@ -375,6 +376,10 @@ processPointsWithMask(
   } catch (cv_bridge::Exception & e) {
     std::cerr << e.what() << std::endl;
     return ret;
+  }
+
+  if (is_inverse) {
+    cv::bitwise_not(cv_ptr->image, cv_ptr->image);
   }
 
   for (const auto & point : cloud->points) {
@@ -416,7 +421,6 @@ projectCloud(
       detection_cloud_raw =
         processPointsWithBbox(cloud, yolo_result_msg->detections[i], cam_model_);
     } else {
-      std::cout << "Processing mask" << std::endl;
       detection_cloud_raw = processPointsWithMask(
         cloud, yolo_result_msg->detections[i].mask,
         cam_model_);
