@@ -91,6 +91,7 @@ rclcpp_components_register_nodes(${PROJECT_NAME} "perception_system::ObjectsDete
 rclcpp_components_register_nodes(${PROJECT_NAME} "perception_system::PersonPointingNode")
 rclcpp_components_register_nodes(${PROJECT_NAME} "perception_system::FollowPersonNode")
 rclcpp_components_register_nodes(${PROJECT_NAME} "perception_system::ColorPersonNode")
+rclcpp_components_register_nodes(${PROJECT_NAME} "perception_system::CollisionServer")
 # rclcpp_components_register_nodes(${PROJECT_NAME} "perception_system::YoloNode")
 
 add_executable(dt_people src/people_detection_main.cpp)
