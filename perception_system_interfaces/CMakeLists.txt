@@ -19,6 +19,7 @@ set(srv_interfaces
     srv/ExtractNPlanes.srv
     srv/IsolatePCClasses.srv
     srv/RemoveDepthClasses.srv
+    srv/IsolateDepthClasses.srv
 )
 
 # set(action_interfaces
