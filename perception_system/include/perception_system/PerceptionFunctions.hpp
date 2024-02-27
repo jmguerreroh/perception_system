@@ -432,12 +432,13 @@ projectCloud(
       closest_detection_cloud = euclideanClusterExtraction(
         detection_cloud_raw, cluster_tolerance_,
         min_cluster_size_, max_cluster_size_);
-      *combine_detection_cloud += *closest_detection_cloud;           
+      *combine_detection_cloud += *closest_detection_cloud;
     } else {
-      std::cerr << "Detection for " << yolo_result_msg->detections[i].class_name << " couldnt be processed" << std::endl;
+      std::cerr << "Detection for " << yolo_result_msg->detections[i].class_name <<
+        " couldnt be processed" << std::endl;
     }
   }
-  pcl::toROSMsg(*combine_detection_cloud, combine_detection_cloud_msg); 
+  pcl::toROSMsg(*combine_detection_cloud, combine_detection_cloud_msg);
   combine_detection_cloud_msg.header = header;
   return combine_detection_cloud_msg;
 }
