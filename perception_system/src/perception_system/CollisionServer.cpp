@@ -289,14 +289,14 @@ void CollisionServer::remove_classes_from_depth_callback(
     response->success = false;
     return;
   }
-  // if(!are_registered(last_yolo_, last_depth_image_))
-  // {
-  //   response->success = false;
-  //   RCLCPP_WARN(
-  //     get_logger(),
-  //     "The yolo detection and depth frame are not registered!");
-  //   return;
-  // } 
+  if(!are_registered(last_yolo_, last_depth_image_))
+  {
+    response->success = false;
+    RCLCPP_WARN(
+      get_logger(),
+      "The yolo detection and depth frame are not registered!");
+    return;
+  } 
   
   cv_bridge::CvImagePtr image_depth_ptr;
   try {
@@ -346,14 +346,14 @@ void CollisionServer::isolate_classes_from_depth_callback(
     response->success = false;
     return;
   }
-  // if(!are_registered(last_yolo_, last_depth_image_))
-  // {
-  //   response->success = false;
-  //   RCLCPP_WARN(
-  //     get_logger(),
-  //     "The yolo detection and depth frame are not registered!");
-  //   return;
-  // } 
+  if(!are_registered(last_yolo_, last_depth_image_))
+  {
+    response->success = false;
+    RCLCPP_WARN(
+      get_logger(),
+      "The yolo detection and depth frame are not registered!");
+    return;
+  } 
 
   cv_bridge::CvImagePtr image_depth_ptr;
   try {
