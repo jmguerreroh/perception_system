@@ -16,21 +16,28 @@ find_package(rclcpp_lifecycle REQUIRED)
 find_package(rclcpp_cascade_lifecycle REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(cv_bridge REQUIRED)
+find_package(vision_msgs REQUIRED)
+# find_package(std_msgs REQUIRED)
+find_package(OpenCV REQUIRED)
+find_package(PCL 1.8 REQUIRED QUIET)
+find_package(pcl_conversions REQUIRED)
+find_package(image_geometry REQUIRED)
+# find_package(depth_image_proc REQUIRED)
+find_package(Eigen3 REQUIRED)
+find_package(message_filters REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(geometry_msgs REQUIRED)
-# find_package(ament_index_cpp REQUIRED)
-# find_package(image_transport REQUIRED)
-# find_package(sensor_msgs REQUIRED)
-# find_package(std_msgs REQUIRED)
-# find_package(PCL 1.8 REQUIRED QUIET)
-# find_package(pcl_conversions REQUIRED)
-# find_package(image_geometry REQUIRED)
-# find_package(depth_image_proc REQUIRED)
-# find_package(Eigen3 REQUIRED)
-# find_package(message_filters REQUIRED)
+find_package(perception_system_interfaces REQUIRED)
+find_package(tf2_eigen REQUIRED)
 # find_package(Python COMPONENTS Interpreter Development)
 # find_package(pybind11 REQUIRED)
 # find_package(tf2_geometry_msgs REQUIRED)
+find_package(PCL 1.8 REQUIRED QUIET)
+find_package(pcl_conversions REQUIRED)
+
+include_directories(${PCL_INCLUDE_DIRS})
+link_directories(${PCL_LIBRARY_DIRS})
+add_definitions(${PCL_DEFINITIONS})
 
 set(dependencies
   ament_cmake
@@ -40,8 +47,9 @@ set(dependencies
   visualization_msgs
   lifecycle_msgs
   rclcpp_lifecycle
-  rclcpp_cascade_lifecycle  
-  OpenCV
+  rclcpp_cascade_lifecycle
+  vision_msgs
+  # image_transport
   cv_bridge
   tf2_ros
   geometry_msgs  
@@ -49,14 +57,19 @@ set(dependencies
   # image_transport
   # sensor_msgs
   # std_msgs
-  # PCL
-  # pcl_conversions
-  # image_geometry
+  OpenCV
+  PCL
+  pcl_conversions
+  image_geometry
   # depth_image_proc
-  # Eigen3
-  # message_filters
+  Eigen3
+  message_filters
+  tf2_ros
+  tf2_eigen
+  geometry_msgs
   # pybind11
   # tf2_geometry_msgs
+  perception_system_interfaces
 )
 
 # OpenCV and PCL node
@@ -67,16 +80,18 @@ add_library(${PROJECT_NAME} SHARED
   src/${PROJECT_NAME}/PersonPointingNode.cpp
   src/${PROJECT_NAME}/FollowPersonNode.cpp
   src/${PROJECT_NAME}/ColorPersonNode.cpp
+  src/${PROJECT_NAME}/CollisionServer.cpp
   # src/${PROJECT_NAME}/YoloNode.cpp
 )
 ament_target_dependencies(${PROJECT_NAME} ${dependencies})
-target_link_libraries(${PROJECT_NAME})
+target_link_libraries(${PROJECT_NAME} ${PCL_LIBRARIES})
 
 rclcpp_components_register_nodes(${PROJECT_NAME} "perception_system::PeopleDetectionNode")
 rclcpp_components_register_nodes(${PROJECT_NAME} "perception_system::ObjectsDetectionNode")
 rclcpp_components_register_nodes(${PROJECT_NAME} "perception_system::PersonPointingNode")
 rclcpp_components_register_nodes(${PROJECT_NAME} "perception_system::FollowPersonNode")
 rclcpp_components_register_nodes(${PROJECT_NAME} "perception_system::ColorPersonNode")
+rclcpp_components_register_nodes(${PROJECT_NAME} "perception_system::CollisionServer")
 # rclcpp_components_register_nodes(${PROJECT_NAME} "perception_system::YoloNode")
 
 add_executable(dt_people src/people_detection_main.cpp)
@@ -104,6 +119,10 @@ target_link_libraries(dt_color ${PROJECT_NAME})
 # target_link_libraries(dt_yolo ${PROJECT_NAME})
 # target_link_libraries(dt_yolo pybind11::pybind11 ${PROJECT_NAME})
 
+add_executable(collision_server src/collision_server_main.cpp)
+ament_target_dependencies(collision_server ${dependencies})
+target_link_libraries(collision_server ${PROJECT_NAME})
+
 install(TARGETS ${PROJECT_NAME}
   dt_people
   dt_objects
@@ -111,6 +130,7 @@ install(TARGETS ${PROJECT_NAME}
   dt_follow
   dt_color
   # dt_yolo
+  collision_server
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
