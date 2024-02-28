@@ -81,7 +81,8 @@ add_library(${PROJECT_NAME} SHARED
   src/${PROJECT_NAME}/FollowPersonNode.cpp
   src/${PROJECT_NAME}/ColorPersonNode.cpp
   src/${PROJECT_NAME}/CollisionServer.cpp
-  # src/${PROJECT_NAME}/YoloNode.cpp
+  src/${PROJECT_NAME}/PerceptionListener.cpp
+    # src/${PROJECT_NAME}/YoloNode.cpp
 )
 ament_target_dependencies(${PROJECT_NAME} ${dependencies})
 target_link_libraries(${PROJECT_NAME} ${PCL_LIBRARIES})
