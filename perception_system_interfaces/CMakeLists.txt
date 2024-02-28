@@ -6,13 +6,17 @@ find_package(ament_cmake REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(yolov8_msgs REQUIRED)
 
 set(CMAKE_CXX_STANDARD 17)
 
 set(dependencies
   rosidl_default_generators
   sensor_msgs
-  std_msgs 
+  std_msgs
+  geometry_msgs
+  yolov8_msgs
 )
 
 set(srv_interfaces
@@ -23,19 +27,17 @@ set(srv_interfaces
     srv/IsolateDepthClasses.srv
 )
 
-# set(action_interfaces
-#   action/Action1.action
-# )
-
-# set(msg_interfaces
-#   msg/Msg1.msg
-# )
+set(msg_interfaces
+  msg/Detection.msg
+  msg/DetectionArray.msg
+)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
     ${srv_interfaces}
+    ${msg_interfaces}
     DEPENDENCIES ${dependencies}
 )
 
-ament_export_dependencies(rosidl_default_runtime)
+ament_export_dependencies(rosidl_default_runtime sensor_msgs std_msgs geometry_msgs yolov8_msgs)
 ament_export_include_directories(include)
 ament_package()
