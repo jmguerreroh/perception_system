@@ -38,6 +38,7 @@ CollisionServer::CollisionServer(const rclcpp::NodeOptions & options)
   declare_parameter<std::string>("camera_info_topic", "depth_info");
   declare_parameter<float>("cluster_tolerance", 0.5);
   declare_parameter<float>("voxel_leaf_size", 0.01);
+  declare_parameter<float>("erode_factor", 1.25);
   declare_parameter<int>("min_cluster_size", 100);
   declare_parameter<int>("max_cluster_size", 25000);
 }
@@ -58,6 +59,7 @@ CollisionServer::on_configure(const rclcpp_lifecycle::State & state)
   get_parameter("yolo_topic", yolo_result_topic_);
   get_parameter("camera_info_topic", camera_info_topic_);
   get_parameter("cluster_tolerance", cluster_tolerance_);
+  get_parameter("erode_factor", erode_factor_);
   get_parameter("voxel_leaf_size", voxel_leaf_size_);
   get_parameter("min_cluster_size", min_cluster_size_);
   get_parameter("max_cluster_size", max_cluster_size_);
@@ -177,7 +179,6 @@ CollisionServer::sync_cb(
   const sensor_msgs::msg::Image::ConstSharedPtr & depth_msg,
   const yolov8_msgs::msg::DetectionArray::ConstSharedPtr & yolo_result_msg)
 {
-  RCLCPP_INFO(get_logger(), "[%s] Sync Callback (new message) state...", get_name());
   last_pc_ = pc_msg;
   last_depth_image_ = depth_msg;
   last_yolo_ = yolo_result_msg;
@@ -217,6 +218,30 @@ void CollisionServer::extract_n_planes_callback(
   downsampled_cloud = downsampleCloudMsg(last_pc_, voxel_leaf_size_);
 
   auto plane = extractNPlanes(*downsampled_cloud, request->n_planes);
+
+  // erode holes:
+  // std::vector< cv::Point2d> points;
+  // for (auto const & point : plane.points) {
+  //   cv::Point3d pt_cv(point.x, point.y, point.z);
+  //   points.push_back(cam_model_.project3dToPixel(pt_cv));    
+  // }
+  // cv::Mat_<cv::Point2d> projected_pc(points);
+  // cv::Mat mask = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(3, 3));
+  // cv::erode(projected_pc, projected_pc, mask);
+
+  // pcl::PointCloud<pcl::PointXYZRGB>::Ptr eroded_plane(new pcl::PointCloud<pcl::PointXYZRGB>());
+
+  // for (int i = 0; i < projected_pc.rows; i++) {
+  //   for(int j = 0; j < projected_pc.cols; j++) {
+  //     cv::Point2d point = projected_pc.at<cv::Point2d>(i, j);
+  //     pcl::PointXYZRGB pcl_point;
+  //     auto cv_point = cam_model_.projectPixelTo3dRay(point);
+  //     pcl_point.x = cv_point.x;
+  //     pcl_point.y = cv_point.y;
+  //     pcl_point.z = cv_point.z;
+  //     eroded_plane->push_back(pcl_point);
+  //   }
+  // }
 
   sensor_msgs::msg::PointCloud2 filtered_pc_;
   pcl::toROSMsg(plane, filtered_pc_);
@@ -461,10 +486,12 @@ void CollisionServer::isolate_pc_background_service_callback(
 
   downsampled_cloud = downsampleCloudMsg(last_pc_, voxel_leaf_size_);
   sensor_msgs::msg::PointCloud2 detection_cloud_msg;
+  yolov8_msgs::msg::DetectionArray::ConstSharedPtr eroded_yolo;
+  eroded_yolo = std::make_shared<const yolov8_msgs::msg::DetectionArray>(erodeDetections(last_yolo_, erode_factor_));
 
   detection_cloud_msg = projectCloud(
     downsampled_cloud,
-    last_yolo_,
+    eroded_yolo,
     cam_model_,
     cluster_tolerance_,
     min_cluster_size_,

@@ -443,4 +443,30 @@ projectCloud(
   return combine_detection_cloud_msg;
 }
 
+inline yolov8_msgs::msg::DetectionArray
+erodeDetections(
+  const yolov8_msgs::msg::DetectionArray::ConstSharedPtr & yolo_result_msg,
+  const double & erode_factor)
+{
+  yolov8_msgs::msg::DetectionArray eroded_yolo_result_msg;
+  eroded_yolo_result_msg.header = yolo_result_msg->header;
+  if (erode_factor == 1.0 || erode_factor <= 0.0 || yolo_result_msg->detections.empty() || yolo_result_msg->detections[0].mask.data.empty()) {
+    return *yolo_result_msg;
+  }
+
+  for (size_t i = 0; i < yolo_result_msg->detections.size(); i++) {
+    yolov8_msgs::msg::Detection detection = yolo_result_msg->detections[i];
+    detection.bbox.size.x *= erode_factor;
+    detection.bbox.size.y *= erode_factor;
+    eroded_yolo_result_msg.detections.push_back(detection);
+
+    yolov8_msgs::msg::Mask mask = yolo_result_msg->detections[i].mask;
+    for (size_t j = 0; j < mask.data.size(); j++) {
+      mask.data[j].x = mask.data[j].x * erode_factor;
+      mask.data[j].y = mask.data[j].y * erode_factor;
+    }
+  }
+  return eroded_yolo_result_msg;
+}
+
 } // namespace perception_system
