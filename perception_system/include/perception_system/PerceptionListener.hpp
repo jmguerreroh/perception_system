@@ -23,11 +23,24 @@ limitations under the License.
 #include "rclcpp_cascade_lifecycle/rclcpp_cascade_lifecycle.hpp"
 
 #include "perception_system_interfaces/msg/detection.hpp"
+#include "perception_system_interfaces/msg/detection_array.hpp"
 
 
 namespace perception_system
 {
 
+struct PerceptionData
+{
+  std::string type;
+  perception_system_interfaces::msg::Detection msg;
+  rclcpp::Time time;
+};
+
+struct PerceptionInterest
+{
+  bool status;
+  rclcpp::Time time;
+};
 
 class PerceptionListener : public rclcpp_cascade_lifecycle::CascadeLifecycleNode
 {
@@ -63,11 +76,13 @@ private:
 
   static std::shared_ptr<PerceptionListener> uniqueInstance_;
 
-  rclcpp::Subscription<perception_system_interfaces::msg::Detection>::SharedPtr percept_sub_;
-  std::vector<perception_system_interfaces::msg::Detection> last_perceptions_;
-  std::map<std::string, rclcpp::Time> interests_;
+  rclcpp::Subscription<perception_system_interfaces::msg::DetectionArray>::SharedPtr percept_sub_;
+  std::map<std::string, PerceptionInterest> interests_;
+  std::map<std::string, PerceptionData> perceptions_;
 
-  void perception_callback(perception_system_interfaces::msg::Detection::UniquePtr msg);
+  void perception_callback(perception_system_interfaces::msg::DetectionArray::UniquePtr msg);
+
+  int time_;
 };
 
 }  // namespace perception_system

@@ -20,9 +20,9 @@ namespace perception_system
 {
 
 ObjectsDetectionNode::ObjectsDetectionNode(const rclcpp::NodeOptions & options)
-: rclcpp_cascade_lifecycle::CascadeLifecycleNode("objects_detection_node", options)
+: rclcpp_cascade_lifecycle::CascadeLifecycleNode("perception_objects_detection_node", options)
 {
-  // Add the activation of the people detection node
+  // Add the activation of the objects detection node
   this->add_activation("yolov8_node");
   this->add_activation("yolov8_detect_3d_node");
   this->add_activation("yolov8_tracking_node");
@@ -37,16 +37,11 @@ CallbackReturnT ObjectsDetectionNode::on_configure(const rclcpp_lifecycle::State
 
   this->declare_parameter("classes", "all");
   this->get_parameter("classes", classes_);
-  this->declare_parameter("debug", false);
-  this->get_parameter("debug", debug_);
   this->declare_parameter("target_frame", "head_front_camera_link");
   this->get_parameter("target_frame", frame_id_);
-
-  pub_ = this->create_publisher<yolov8_msgs::msg::DetectionArray>(
-    "/perception_system/objects_detection", 10);
-
-  markers_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>(
-    "/perception_system/bb_objects", 10);
+  
+  pub_ = this->create_publisher<perception_system_interfaces::msg::DetectionArray>(
+    "/perception_system/all_perceptions", 10);
 
   return CallbackReturnT::SUCCESS;
 }
@@ -57,12 +52,14 @@ CallbackReturnT ObjectsDetectionNode::on_activate(const rclcpp_lifecycle::State 
     get_logger(), "[%s] Activating from [%s] state...", get_name(),
     state.label().c_str());
 
+  char * topic_name = (char *)malloc(strlen(this->get_namespace()) + strlen("/detections_3d") + 1);
+  strcpy(topic_name, this->get_namespace());
+  strcat(topic_name, "/detections_3d");
   sub_ = this->create_subscription<yolov8_msgs::msg::DetectionArray>(
-    "/perception_system/detections_3d", 10,
+    topic_name, 10,
     [this](yolov8_msgs::msg::DetectionArray::ConstSharedPtr msg) {return this->callback(msg);});
 
   pub_->on_activate();
-  markers_pub_->on_activate();
 
   return CallbackReturnT::SUCCESS;
 }
@@ -76,7 +73,6 @@ CallbackReturnT ObjectsDetectionNode::on_deactivate(const rclcpp_lifecycle::Stat
   sub_ = nullptr;
 
   pub_->on_deactivate();
-  markers_pub_->on_deactivate();
 
   return CallbackReturnT::SUCCESS;
 }
@@ -88,7 +84,6 @@ CallbackReturnT ObjectsDetectionNode::on_cleanup(const rclcpp_lifecycle::State &
     state.label().c_str());
 
   pub_.reset();
-  markers_pub_.reset();
 
   return CallbackReturnT::SUCCESS;
 }
@@ -100,7 +95,6 @@ CallbackReturnT ObjectsDetectionNode::on_shutdown(const rclcpp_lifecycle::State 
     state.label().c_str());
 
   pub_.reset();
-  markers_pub_.reset();
 
   return CallbackReturnT::SUCCESS;
 }
@@ -115,50 +109,81 @@ CallbackReturnT ObjectsDetectionNode::on_error(const rclcpp_lifecycle::State & s
 void ObjectsDetectionNode::callback(
   const yolov8_msgs::msg::DetectionArray::ConstSharedPtr & msg)
 {
-  yolov8_msgs::msg::DetectionArray objects_array;
-  visualization_msgs::msg::MarkerArray marker_array;
+
+  // Convierte de sensor_msgs::Image a cv::Mat utilizando cv_bridge
+  cv_bridge::CvImagePtr image_rgb_ptr;
+  try {
+    image_rgb_ptr = cv_bridge::toCvCopy(msg->source_img, sensor_msgs::image_encodings::BGR8);
+  } catch (cv_bridge::Exception & e) {
+    RCLCPP_ERROR(get_logger(), "cv_bridge exception: %s", e.what());
+    return;
+  }
+  cv::Mat image = image_rgb_ptr->image;
+
+  perception_system_interfaces::msg::DetectionArray perception_array;
+  perception_array.header = msg->header;
+  perception_array.source_img = msg->source_img;
 
   for (auto detection : msg->detections) {
-    if ((classes_.find("all") != std::string::npos) ||
-      (classes_.find(detection.class_name) != std::string::npos))
+    if ((detection.class_name != "person") && ((classes_.find("all") != std::string::npos) ||
+      (classes_.find(detection.class_name) != std::string::npos)))
     {
-      objects_array.detections.push_back(detection);
+      perception_system_interfaces::msg::Detection perception;
+      perception.header = msg->header;
+      std::string id = underscore(detection.class_name + "_" + detection.id);
+      perception.header.frame_id = frame_id_;
+      perception.unique_id = id; 
+      perception.type = detection.class_name;
+      perception.class_id = stoi(detection.id);
+      perception.class_name = detection.class_name;
+      perception.score = detection.score;
+      perception.center2d.x = detection.bbox.center.position.x;
+      perception.center2d.y = detection.bbox.center.position.y;
+      perception.bbox2d.x = detection.bbox.size.x;
+      perception.bbox2d.y = detection.bbox.size.y;
+      perception.bbox2d.z = 0.0;
+      perception.center3d = detection.bbox3d.center;
+      perception.bbox3d = detection.bbox3d.size;
 
-      if (debug_) {
-        visualization_msgs::msg::Marker marker;
-        marker.header.frame_id = frame_id_;
-        marker.header.stamp = msg->header.stamp;
-        marker.ns = "perception_system";
-        marker.id = stoi(detection.id);
-        marker.text = detection.class_name;
-        marker.frame_locked = false;
-        marker.type = visualization_msgs::msg::Marker::CUBE;
-        marker.action = visualization_msgs::msg::Marker::ADD;
-        marker.pose.position.x = detection.bbox3d.center.position.x;
-        marker.pose.position.y = detection.bbox3d.center.position.y;
-        marker.pose.position.z = detection.bbox3d.center.position.z;
-        marker.pose.orientation.x = 0.0;
-        marker.pose.orientation.y = 0.0;
-        marker.pose.orientation.z = 0.0;
-        marker.pose.orientation.w = 1.0;
-        marker.scale.x = detection.bbox3d.size.x;
-        marker.scale.y = detection.bbox3d.size.y;
-        marker.scale.z = detection.bbox3d.size.z;
-        marker.color.a = 1.0;
-        marker.color.r = 0.0;
-        marker.color.g = 1.0;
-        marker.color.b = 0.0;
-        marker.lifetime = rclcpp::Duration::from_seconds(0.5);
-        marker_array.markers.push_back(marker);
+      cv::Point2d min_pt = cv::Point2d(
+        round(detection.bbox.center.position.x - detection.bbox.size.x / 2.0),
+        round(detection.bbox.center.position.y - detection.bbox.size.y / 2.0));
+      cv::Point2d max_pt = cv::Point2d(
+        round(detection.bbox.center.position.x + detection.bbox.size.x / 2.0),
+        round(detection.bbox.center.position.y + detection.bbox.size.y / 2.0));
+
+      min_pt = checkPoint(min_pt, image.size());
+      max_pt = checkPoint(max_pt, image.size());
+
+      cv::Mat roi = image(cv::Rect(min_pt, max_pt));
+      sensor_msgs::msg::Image::SharedPtr img_msg;
+      try {
+          // Convertir de cv::Mat a sensor_msgs::msg::Image
+          img_msg = cv_bridge::CvImage(std_msgs::msg::Header(), "bgr8", roi).toImageMsg();
+      } catch (cv_bridge::Exception& e) {
+          // Manejar cualquier excepción que pueda ocurrir durante la conversión
+          RCLCPP_ERROR_STREAM(rclcpp::get_logger("cv_bridge"), "Error al convertir la imagen: " << e.what());
+          return;
       }
+      perception.image = *img_msg;
+      // Convert the ROI to the HSV color space
+      cv::Mat hsvRoi;
+      cv::cvtColor(roi, hsvRoi, cv::COLOR_BGR2HSV);
+
+      perception.person_data = 0;
+      perception.object_data = 1;
+      // Depends on the object
+      perception.collision = false;
+      // color object
+      std::vector<int8_t> avg = mean_color(hsvRoi);
+      perception.color_object = avg;
+
+      perception_array.detections.push_back(perception);
     }
   }
 
-  if (objects_array.detections.size() > 0) {
-    pub_->publish(objects_array);
-    if (debug_) {
-      markers_pub_->publish(marker_array);
-    }
+  if (perception_array.detections.size() > 0) {
+    pub_->publish(perception_array); 
   }
 }
 

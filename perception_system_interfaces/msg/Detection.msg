@@ -1,7 +1,6 @@
 std_msgs/Header header
 string unique_id
-# 0 object 1 person
-int8 type
+string type
 
 # yolo data
 int32 class_id
@@ -15,10 +14,15 @@ geometry_msgs/Pose center3d
 geometry_msgs/Vector3 bbox3d
 
 # person
-int64 color_id
+bool person_data
+int64 color_person
 yolov8_msgs/KeyPoint2D[] skeleton2d
 yolov8_msgs/KeyPoint3D[] skeleton3d
+int8 pointing_direction
 
 # object
-int8[] color
+bool object_data
+int8[] color_object
 bool collision
+
+sensor_msgs/Image image

@@ -34,6 +34,12 @@ def generate_launch_description():
         description='Model name or path'
     )
 
+    ns = LaunchConfiguration('namespace')
+    ns_arg = DeclareLaunchArgument(
+        'namespace', default_value='',
+        description='namespace'
+    )
+
     target_frame = LaunchConfiguration('target_frame')
     target_frame_arg = DeclareLaunchArgument(
         'target_frame', default_value='head_front_camera_link',
@@ -71,7 +77,9 @@ def generate_launch_description():
     yolo3d = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(yolo3d_launch),
         launch_arguments={
-            'namespace': 'perception_system',
+            # 'namespace': 'perception_system',
+            # 'namespace': '',
+            'namespace': ns,
             'model': model,
             'input_image_topic': input_image_topic,
             'input_depth_topic': input_depth_topic,
@@ -83,74 +91,61 @@ def generate_launch_description():
 
     people_detection_node = Node(
         package='perception_system',
-        namespace='perception_system',
+        # namespace='perception_system',
+        namespace=ns,
         executable='dt_people',
         output='both',
         emulate_tty=True,
+        parameters=[
+            {'target_frame': target_frame},
+        ],
     )
 
     objects_detection_node = Node(
         package='perception_system',
-        namespace='perception_system',
+        # namespace='perception_system',
+        namespace=ns,
         executable='dt_objects',
         output='both',
         emulate_tty=True,
         parameters=[
             {'target_frame': target_frame},
-            {'debug': debug},
-            {'classes': 'dining table'},
+            {'classes': 'all'},
         ],
     )
 
-    pointing_detection_node = Node(
+    debug_node = Node(
         package='perception_system',
-        namespace='perception_system',
-        executable='dt_pointing',
+        # namespace='perception_system',
+        namespace=ns,
+        executable='dt_debug',
         output='both',
         emulate_tty=True,
         parameters=[
-            {'debug': debug},
-            {'unique_id': -1},  # -1 to disable id and detect the closest person
-        ],
-    )
-
-    follow_person_node = Node(
-        package='perception_system',
-        namespace='perception_system',
-        executable='dt_follow',
-        output='both',
-        emulate_tty=True,
-        parameters=[
-            {'debug': debug},
             {'target_frame': target_frame},
-            {'unique_id': 30680332875},
         ],
     )
 
-    color_person_node = Node(
+    perception_listener = Node(
         package='perception_system',
-        namespace='perception_system',
-        executable='dt_color',
+        # namespace='perception_system',
+        namespace=ns,
+        executable='perception_listener',
         output='both',
         emulate_tty=True,
         parameters=[
-            {'debug': debug},
+            {'interest1': 'person'},
+            {'interest2': 'bowl'},
+            {'time': 600}
         ],
     )
-
-    # yolo_node = Node(
-    #     package='perception_system',
-    #     namespace='perception_system',
-    #     executable='dt_yolo',
-    #     output='both',
-    #     emulate_tty=True,
-    # )
 
     # Create the launch description and populate
     ld = LaunchDescription()
 
     ld.add_action(model_arg)
     ld.add_action(target_frame_arg)
+    ld.add_action(ns_arg)
     ld.add_action(debug_arg)
     ld.add_action(input_image_topic_arg)
     ld.add_action(input_depth_topic_arg)
@@ -160,10 +155,8 @@ def generate_launch_description():
     ld.add_action(yolo3d)
 
     ld.add_action(people_detection_node)
-    ld.add_action(pointing_detection_node)
     ld.add_action(objects_detection_node)
-    ld.add_action(follow_person_node)
-    ld.add_action(color_person_node)
-    # ld.add_action(yolo_node)
+    ld.add_action(debug_node)
+    # ld.add_action(perception_listener)
 
     return ld

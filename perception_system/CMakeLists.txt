@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.8)
 project(perception_system)
+cmake_policy(SET CMP0074 NEW)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -34,6 +35,7 @@ find_package(tf2_eigen REQUIRED)
 # find_package(tf2_geometry_msgs REQUIRED)
 find_package(PCL 1.8 REQUIRED QUIET)
 find_package(pcl_conversions REQUIRED)
+
 
 include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
@@ -77,23 +79,18 @@ include_directories(include)
 add_library(${PROJECT_NAME} SHARED
   src/${PROJECT_NAME}/PeopleDetectionNode.cpp
   src/${PROJECT_NAME}/ObjectsDetectionNode.cpp
-  src/${PROJECT_NAME}/PersonPointingNode.cpp
-  src/${PROJECT_NAME}/FollowPersonNode.cpp
-  src/${PROJECT_NAME}/ColorPersonNode.cpp
+  src/${PROJECT_NAME}/DebugNode.cpp
   src/${PROJECT_NAME}/CollisionServer.cpp
   src/${PROJECT_NAME}/PerceptionListener.cpp
-    # src/${PROJECT_NAME}/YoloNode.cpp
 )
 ament_target_dependencies(${PROJECT_NAME} ${dependencies})
 target_link_libraries(${PROJECT_NAME} ${PCL_LIBRARIES})
 
 rclcpp_components_register_nodes(${PROJECT_NAME} "perception_system::PeopleDetectionNode")
 rclcpp_components_register_nodes(${PROJECT_NAME} "perception_system::ObjectsDetectionNode")
-rclcpp_components_register_nodes(${PROJECT_NAME} "perception_system::PersonPointingNode")
-rclcpp_components_register_nodes(${PROJECT_NAME} "perception_system::FollowPersonNode")
-rclcpp_components_register_nodes(${PROJECT_NAME} "perception_system::ColorPersonNode")
+rclcpp_components_register_nodes(${PROJECT_NAME} "perception_system::DebugNode")
 rclcpp_components_register_nodes(${PROJECT_NAME} "perception_system::CollisionServer")
-# rclcpp_components_register_nodes(${PROJECT_NAME} "perception_system::YoloNode")
+rclcpp_components_register_nodes(${PROJECT_NAME} "perception_system::PerceptionListener")
 
 add_executable(dt_people src/people_detection_main.cpp)
 ament_target_dependencies(dt_people ${dependencies})
@@ -103,35 +100,25 @@ add_executable(dt_objects src/objects_detection_main.cpp)
 ament_target_dependencies(dt_objects ${dependencies})
 target_link_libraries(dt_objects ${PROJECT_NAME})
 
-add_executable(dt_pointing src/person_pointing_main.cpp)
-ament_target_dependencies(dt_pointing ${dependencies})
-target_link_libraries(dt_pointing ${PROJECT_NAME})
-
-add_executable(dt_follow src/follow_person_main.cpp)
-ament_target_dependencies(dt_follow ${dependencies})
-target_link_libraries(dt_follow ${PROJECT_NAME})
-
-add_executable(dt_color src/color_person_main.cpp)
-ament_target_dependencies(dt_color ${dependencies})
-target_link_libraries(dt_color ${PROJECT_NAME})
-
-# add_executable(dt_yolo src/yolo_main.cpp)
-# ament_target_dependencies(dt_yolo ${dependencies})
-# target_link_libraries(dt_yolo ${PROJECT_NAME})
-# target_link_libraries(dt_yolo pybind11::pybind11 ${PROJECT_NAME})
+add_executable(dt_debug src/debug_main.cpp)
+ament_target_dependencies(dt_debug ${dependencies})
+target_link_libraries(dt_debug ${PROJECT_NAME})
 
 add_executable(collision_server src/collision_server_main.cpp)
 ament_target_dependencies(collision_server ${dependencies})
 target_link_libraries(collision_server ${PROJECT_NAME})
 
-install(TARGETS ${PROJECT_NAME}
+add_executable(perception_listener src/test_listener_main.cpp)
+ament_target_dependencies(perception_listener ${dependencies})
+target_link_libraries(perception_listener ${PROJECT_NAME})
+
+install(TARGETS
+ ${PROJECT_NAME}
   dt_people
   dt_objects
-  dt_pointing
-  dt_follow
-  dt_color
-  # dt_yolo
+  dt_debug
   collision_server
+  perception_listener
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
@@ -141,6 +128,9 @@ install(TARGETS ${PROJECT_NAME}
 install(DIRECTORY launch models
         DESTINATION share/${PROJECT_NAME})
 
+install(DIRECTORY include/
+        DESTINATION include/
+      )
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights

@@ -14,18 +14,29 @@
   limitations under the License.
 */
 
-#ifndef PEOPLE_DETECTION_NODE_HPP_
-#define PEOPLE_DETECTION_NODE_HPP_
+#ifndef PERCEPTION_SYSTEM__PEOPLE_DETECTION_NODE_HPP_
+#define PERCEPTION_SYSTEM__PEOPLE_DETECTION_NODE_HPP_
 
 #include "rclcpp/rclcpp.hpp"
 
 #include "yolov8_msgs/msg/detection_array.hpp"
+#include "yolov8_msgs/msg/key_point2_d_array.hpp"
+#include "perception_system_interfaces/msg/detection_array.hpp"
+
+#include "visualization_msgs/msg/marker_array.hpp"
 
 #include "lifecycle_msgs/msg/state.hpp"
 #include "rclcpp_cascade_lifecycle/rclcpp_cascade_lifecycle.hpp"
 
 #include "cascade_lifecycle_msgs/msg/activation.hpp"
 #include "cascade_lifecycle_msgs/msg/state.hpp"
+
+#include <opencv2/opencv.hpp>
+#include "opencv2/highgui/highgui.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
+#include <cv_bridge/cv_bridge.h>
+
+#include "perception_system/PerceptionUtils.hpp"
 
 namespace perception_system
 {
@@ -49,9 +60,11 @@ private:
   void callback(const yolov8_msgs::msg::DetectionArray::ConstSharedPtr & msg);
 
   rclcpp::Subscription<yolov8_msgs::msg::DetectionArray>::SharedPtr sub_;
-  rclcpp_lifecycle::LifecyclePublisher<yolov8_msgs::msg::DetectionArray>::SharedPtr pub_;
+  rclcpp_lifecycle::LifecyclePublisher<perception_system_interfaces::msg::DetectionArray>::SharedPtr pub_;
+  
+  std::string frame_id_;
 };
 
 }  // namespace perception_system
 
-#endif  // PEOPLE_DETECTION_NODE_HPP_
+#endif  // PERCEPTION_SYSTEM__PEOPLE_DETECTION_NODE_HPP_
