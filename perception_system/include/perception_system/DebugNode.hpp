@@ -53,7 +53,7 @@ private:
   rclcpp::Subscription<perception_system_interfaces::msg::DetectionArray>::SharedPtr sub_;
 
   rclcpp_lifecycle::LifecyclePublisher<visualization_msgs::msg::MarkerArray>::SharedPtr markers_pub_;
-  
+
   std::string frame_id_;
 };
 

@@ -60,8 +60,9 @@ private:
   void callback(const yolov8_msgs::msg::DetectionArray::ConstSharedPtr & msg);
 
   rclcpp::Subscription<yolov8_msgs::msg::DetectionArray>::SharedPtr sub_;
-  rclcpp_lifecycle::LifecyclePublisher<perception_system_interfaces::msg::DetectionArray>::SharedPtr pub_;
-  
+  rclcpp_lifecycle::LifecyclePublisher<perception_system_interfaces::msg::DetectionArray>::SharedPtr
+    pub_;
+
   std::string frame_id_;
 };
 

@@ -39,7 +39,7 @@ CallbackReturnT ObjectsDetectionNode::on_configure(const rclcpp_lifecycle::State
   this->get_parameter("classes", classes_);
   this->declare_parameter("target_frame", "head_front_camera_link");
   this->get_parameter("target_frame", frame_id_);
-  
+
   pub_ = this->create_publisher<perception_system_interfaces::msg::DetectionArray>(
     "/perception_system/all_perceptions", 10);
 
@@ -107,8 +107,7 @@ CallbackReturnT ObjectsDetectionNode::on_error(const rclcpp_lifecycle::State & s
 void ObjectsDetectionNode::callback(
   const yolov8_msgs::msg::DetectionArray::ConstSharedPtr & msg)
 {
-
-  // Convierte de sensor_msgs::Image a cv::Mat utilizando cv_bridge
+  // Convert from sensor_msgs::Image to cv::Mat using cv_bridge
   cv_bridge::CvImagePtr image_rgb_ptr;
   try {
     image_rgb_ptr = cv_bridge::toCvCopy(msg->source_img, sensor_msgs::image_encodings::BGR8);
@@ -130,7 +129,7 @@ void ObjectsDetectionNode::callback(
       perception.header = msg->header;
       std::string id = underscore(detection.class_name + "_" + detection.id);
       perception.header.frame_id = frame_id_;
-      perception.unique_id = id; 
+      perception.unique_id = id;
       perception.type = detection.class_name;
       perception.class_id = stoi(detection.id);
       perception.class_name = detection.class_name;
@@ -156,20 +155,16 @@ void ObjectsDetectionNode::callback(
       cv::Mat roi = image(cv::Rect(min_pt, max_pt));
       sensor_msgs::msg::Image::SharedPtr img_msg;
       try {
-          // Convertir de cv::Mat a sensor_msgs::msg::Image
-          img_msg = cv_bridge::CvImage(std_msgs::msg::Header(), "bgr8", roi).toImageMsg();
-      } catch (cv_bridge::Exception& e) {
-          // Manejar cualquier excepción que pueda ocurrir durante la conversión
-          RCLCPP_ERROR_STREAM(rclcpp::get_logger("cv_bridge"), "Error al convertir la imagen: " << e.what());
-          return;
+        // Convert from cv::Mat to sensor_msgs::msg::Image
+        img_msg = cv_bridge::CvImage(std_msgs::msg::Header(), "bgr8", roi).toImageMsg();
+      } catch (cv_bridge::Exception & e) {
+        RCLCPP_ERROR(get_logger(), "cv_bridge exception: %s", e.what());
+        return;
       }
       perception.image = *img_msg;
       // Convert the ROI to the HSV color space
       cv::Mat hsvRoi;
       cv::cvtColor(roi, hsvRoi, cv::COLOR_BGR2HSV);
-
-      perception.person_data = 0;
-      perception.object_data = 1;
       // Depends on the object
       perception.collision = false;
       // color object
@@ -181,7 +176,7 @@ void ObjectsDetectionNode::callback(
   }
 
   if (perception_array.detections.size() > 0) {
-    pub_->publish(perception_array); 
+    pub_->publish(perception_array);
   }
 }
 

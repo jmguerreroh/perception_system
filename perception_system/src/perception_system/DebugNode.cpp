@@ -31,7 +31,7 @@ CallbackReturnT DebugNode::on_configure(const rclcpp_lifecycle::State & state)
 
   this->declare_parameter("target_frame", "head_front_camera_link");
   this->get_parameter("target_frame", frame_id_);
-    
+
   char * topic_name = (char *)malloc(strlen(this->get_namespace()) + strlen("/bb_objects") + 1);
   strcpy(topic_name, this->get_namespace());
   strcat(topic_name, "/bb_objects");
@@ -46,8 +46,9 @@ CallbackReturnT DebugNode::on_activate(const rclcpp_lifecycle::State & state)
   RCLCPP_INFO(
     get_logger(), "[%s] Activating from [%s] state...", get_name(),
     state.label().c_str());
- 
-  char * topic_name = (char *)malloc(strlen(this->get_namespace()) + strlen("/all_perceptions") + 1);
+
+  char * topic_name =
+    (char *)malloc(strlen(this->get_namespace()) + strlen("/all_perceptions") + 1);
   strcpy(topic_name, this->get_namespace());
   strcat(topic_name, "/all_perceptions");
   sub_ = this->create_subscription<perception_system_interfaces::msg::DetectionArray>(
@@ -130,7 +131,7 @@ void DebugNode::callback(
     marker_array.markers.push_back(marker);
   }
 
-  markers_pub_->publish(marker_array); 
+  markers_pub_->publish(marker_array);
 }
 
 }  // namespace perception_system

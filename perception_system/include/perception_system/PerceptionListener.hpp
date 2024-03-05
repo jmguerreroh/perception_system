@@ -45,9 +45,11 @@ struct PerceptionInterest
 class PerceptionListener : public rclcpp_cascade_lifecycle::CascadeLifecycleNode
 {
 public:
-  static std::shared_ptr<PerceptionListener> getInstance() {
-    if (uniqueInstance_ == nullptr )
+  static std::shared_ptr<PerceptionListener> getInstance()
+  {
+    if (uniqueInstance_ == nullptr) {
       uniqueInstance_ = std::make_shared<PerceptionListener>();
+    }
     return uniqueInstance_;
   }
 
@@ -55,15 +57,15 @@ public:
 
   virtual ~PerceptionListener() {}
 
-  void update(bool force = false);
+  void update(double hz = 30);
 
   void set_interest(const std::string & type, bool status = true);
   std::vector<perception_system_interfaces::msg::Detection> get_by_id(const std::string & id);
   std::vector<perception_system_interfaces::msg::Detection> get_by_type(const std::string & type);
 
 
-using CallbackReturnT =
-  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
+  using CallbackReturnT =
+    rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 
   CallbackReturnT on_configure(const rclcpp_lifecycle::State & state);
   CallbackReturnT on_activate(const rclcpp_lifecycle::State & state);
@@ -73,7 +75,6 @@ using CallbackReturnT =
   CallbackReturnT on_error(const rclcpp_lifecycle::State & state);
 
 private:
-
   static std::shared_ptr<PerceptionListener> uniqueInstance_;
 
   rclcpp::Subscription<perception_system_interfaces::msg::DetectionArray>::SharedPtr percept_sub_;
@@ -82,15 +83,15 @@ private:
 
   void perception_callback(perception_system_interfaces::msg::DetectionArray::UniquePtr msg);
 
-  double time_;
-
-  double hz_callback_;
+  double max_time_perception_;
+  double max_time_interest_;
   rclcpp::Time last_update_;
 };
 
 }  // namespace perception_system
 
-std::shared_ptr<perception_system::PerceptionListener> perception_system::PerceptionListener::uniqueInstance_;
+std::shared_ptr<perception_system::PerceptionListener> perception_system::PerceptionListener::
+uniqueInstance_;
 
 
 #endif  // PERCEPTION_SYSTEM__PERCEPTION_LISTENER_HPP_

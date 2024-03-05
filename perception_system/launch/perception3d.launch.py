@@ -36,7 +36,7 @@ def generate_launch_description():
 
     ns = LaunchConfiguration('namespace')
     ns_arg = DeclareLaunchArgument(
-        'namespace', default_value='',
+        'namespace', default_value='perception_system',
         description='namespace'
     )
 
@@ -71,14 +71,13 @@ def generate_launch_description():
     depth_image_units_divisor = LaunchConfiguration('depth_image_units_divisor')
     depth_image_units_divisor_arg = DeclareLaunchArgument(
         'depth_image_units_divisor', default_value='1',
+        # 1 value for simulation, 1000 value in real robot
         description='Depth image units divisor')
 
     yolo3d_launch = os.path.join(yolo_dir, 'launch', 'yolov8_3d.launch.py')
     yolo3d = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(yolo3d_launch),
         launch_arguments={
-            # 'namespace': 'perception_system',
-            # 'namespace': '',
             'namespace': ns,
             'model': model,
             'input_image_topic': input_image_topic,
@@ -91,7 +90,6 @@ def generate_launch_description():
 
     people_detection_node = Node(
         package='perception_system',
-        # namespace='perception_system',
         namespace=ns,
         executable='dt_people',
         output='both',
@@ -103,7 +101,6 @@ def generate_launch_description():
 
     objects_detection_node = Node(
         package='perception_system',
-        # namespace='perception_system',
         namespace=ns,
         executable='dt_objects',
         output='both',
@@ -116,27 +113,12 @@ def generate_launch_description():
 
     debug_node = Node(
         package='perception_system',
-        # namespace='perception_system',
         namespace=ns,
         executable='dt_debug',
         output='both',
         emulate_tty=True,
         parameters=[
             {'target_frame': target_frame},
-        ],
-    )
-
-    perception_listener = Node(
-        package='perception_system',
-        # namespace='perception_system',
-        namespace=ns,
-        executable='perception_listener',
-        output='both',
-        emulate_tty=True,
-        parameters=[
-            {'interest1': 'person'},
-            {'interest2': 'bowl'},
-            {'time': 600}
         ],
     )
 
@@ -157,6 +139,5 @@ def generate_launch_description():
     ld.add_action(people_detection_node)
     ld.add_action(objects_detection_node)
     ld.add_action(debug_node)
-    # ld.add_action(perception_listener)
 
     return ld

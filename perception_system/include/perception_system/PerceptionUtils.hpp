@@ -146,7 +146,7 @@ inline std::vector<int8_t> mean_color(const cv::Mat & hsv)
 {
   cv::Scalar avg = cv::mean(hsv);
   return {static_cast<int8_t>(avg[0]), static_cast<int8_t>(avg[1]), static_cast<int8_t>(avg[2])};
-} 
+}
 
 inline cv::Point2d checkPoint(cv::Point2d point, cv::Size size)
 {
@@ -254,6 +254,7 @@ inline int points_direction(double x1, double y1, double x2, double y2)
   // Get the direction as a number between 0 and 7
   int num = static_cast<int>((deg + 22.5) / 45.0) % 8;
 
+  // 0 is right, 1 is down-right, 2 is down, 3 is down-left, 4 is left, 5 is up-left, 6 is up, 7 is up-right
   return num;
 }
 
