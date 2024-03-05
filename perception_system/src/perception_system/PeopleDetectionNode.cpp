@@ -50,9 +50,7 @@ CallbackReturnT PeopleDetectionNode::on_activate(const rclcpp_lifecycle::State &
     get_logger(), "[%s] Activating from [%s] state...", get_name(),
     state.label().c_str());
 
-  char * topic_name = (char *)malloc(strlen(this->get_namespace()) + strlen("/detections_3d") + 1);
-  strcpy(topic_name, this->get_namespace());
-  strcat(topic_name, "/detections_3d");
+  std::string topic_name = std::string(get_namespace()) + "/detections_3d";
   sub_ = this->create_subscription<yolov8_msgs::msg::DetectionArray>(
     topic_name, 10,
     [this](yolov8_msgs::msg::DetectionArray::ConstSharedPtr msg) {return this->callback(msg);});

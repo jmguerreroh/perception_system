@@ -49,8 +49,9 @@ PerceptionListener::on_configure(const rclcpp_lifecycle::State & state)
   // this->get_parameter("interest1", interest1_);
   // this->declare_parameter("interest2", "");
   // this->get_parameter("interest2", interest2_);
-  this->declare_parameter("time", 5);
+  this->declare_parameter("time", 0.001);
   this->get_parameter("time", time_);
+  last_update_ = rclcpp::Clock(RCL_STEADY_TIME).now();
 
   return CallbackReturnT::SUCCESS;
 }
@@ -62,9 +63,7 @@ PerceptionListener::on_activate(const rclcpp_lifecycle::State & state)
     get_logger(), "[%s] Activating from [%s] state...", get_name(),
     state.label().c_str());
 
-  char * topic_name = (char *)malloc(strlen(this->get_namespace()) + strlen("/all_perceptions") + 1);
-  strcpy(topic_name, this->get_namespace());
-  strcat(topic_name, "/all_perceptions");
+  std::string topic_name = std::string(get_namespace()) + "/all_perceptions";
   percept_sub_ = this->create_subscription<perception_system_interfaces::msg::DetectionArray>(
     topic_name, 10,
     std::bind(&PerceptionListener::perception_callback, this, std::placeholders::_1));
@@ -116,6 +115,9 @@ PerceptionListener::on_error(const rclcpp_lifecycle::State & state)
 void
 PerceptionListener::perception_callback(perception_system_interfaces::msg::DetectionArray::UniquePtr msg)
 {
+  // get hz
+  auto start = rclcpp::Clock(RCL_STEADY_TIME).now();
+
   // auto message = std::move(msg);
   for (auto & detection : msg->detections)
   {
@@ -143,17 +145,19 @@ PerceptionListener::perception_callback(perception_system_interfaces::msg::Detec
         det->second.msg.color_object = detection.color_object;
         det->second.msg.collision = detection.collision;
       }
-      rclcpp::Clock steady_clock(RCL_STEADY_TIME);
-      det->second.time  = steady_clock.now();
+      det->second.time  = rclcpp::Clock(RCL_STEADY_TIME).now();
     }
     else
     {
-      rclcpp::Clock steady_clock(RCL_STEADY_TIME);
-      perceptions_.insert(std::pair<std::string, PerceptionData>(detection.unique_id, {detection.type, detection, steady_clock.now()}));
+      perceptions_.insert(std::pair<std::string, PerceptionData>(detection.unique_id, {detection.type, detection, rclcpp::Clock(RCL_STEADY_TIME).now()}));
     }
   }
 
-  update();
+  // get diff and assign to hz_callback_
+  auto end = rclcpp::Clock(RCL_STEADY_TIME).now();
+  auto diff = end - start;
+  hz_callback_ = diff.seconds();
+
   // // show the perceptions
   // for (auto & perception : perceptions_)
   // {
@@ -171,15 +175,24 @@ PerceptionListener::perception_callback(perception_system_interfaces::msg::Detec
 }
 
 void
-PerceptionListener::update()
+PerceptionListener::update(bool force)
 {
+  // Check if last_update_ is less than hz_callback, and return
+  auto now_update = rclcpp::Clock(RCL_STEADY_TIME).now();
+  auto diff_update = now_update - last_update_;
+  if ((!force) && (diff_update.seconds() < hz_callback_))
+  {
+    return;
+  }
+
+  // std::cout << "Hz update: " << diff_update.seconds() << std::endl;
+
   // Check if last_perceptions_ elements are too old, and remove it
   // Check if interests are too old, and call set_interest( , false)
   std::vector<std::string> to_remove;
   for (auto & perception : perceptions_)
   {
-    rclcpp::Clock steady_clock(RCL_STEADY_TIME);
-    auto now = steady_clock.now();
+    auto now = rclcpp::Clock(RCL_STEADY_TIME).now();
     auto diff = now - perception.second.time;
     if (diff.seconds() > time_)
     {
@@ -192,13 +205,15 @@ PerceptionListener::update()
     perceptions_.erase(id);
   }
 
-  for (auto & perception : perceptions_)
-  {
-    if (perception.second.msg.person_data)
-      RCLCPP_INFO(get_logger(), "Perception: %s, %ld", perception.second.msg.unique_id.c_str(), perception.second.msg.color_person);
-    else
-      RCLCPP_INFO(get_logger(), "Perception: %s, H:%d, S:%d, V:%d", perception.second.msg.unique_id.c_str(), perception.second.msg.color_object[0], perception.second.msg.color_object[1], perception.second.msg.color_object[2]);  
-  }
+  // for (auto & perception : perceptions_)
+  // {
+  //   if (perception.second.msg.person_data)
+  //     RCLCPP_INFO(get_logger(), "Perception: %s, %ld", perception.second.msg.unique_id.c_str(), perception.second.msg.color_person);
+  //   else
+  //     RCLCPP_INFO(get_logger(), "Perception: %s, H:%d, S:%d, V:%d", perception.second.msg.unique_id.c_str(), perception.second.msg.color_object[0], perception.second.msg.color_object[1], perception.second.msg.color_object[2]);  
+  // }
+
+  last_update_ = rclcpp::Clock(RCL_STEADY_TIME).now();
 }
 
 void

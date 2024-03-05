@@ -55,7 +55,7 @@ public:
 
   virtual ~PerceptionListener() {}
 
-  void update();
+  void update(bool force = false);
 
   void set_interest(const std::string & type, bool status = true);
   std::vector<perception_system_interfaces::msg::Detection> get_by_id(const std::string & id);
@@ -82,7 +82,10 @@ private:
 
   void perception_callback(perception_system_interfaces::msg::DetectionArray::UniquePtr msg);
 
-  int time_;
+  double time_;
+
+  double hz_callback_;
+  rclcpp::Time last_update_;
 };
 
 }  // namespace perception_system
