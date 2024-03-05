@@ -66,6 +66,12 @@ def generate_launch_description():
     depth_image_units_divisor_arg = DeclareLaunchArgument(
         'depth_image_units_divisor', default_value='1',
         description='Depth image units divisor')
+    
+    threshold = LaunchConfiguration("threshold")
+    threshold_arg = DeclareLaunchArgument(
+        "threshold",
+        default_value="0.5",
+        description="Minimum probability of a detection to be published")
 
     yolo3d_launch = os.path.join(yolo_dir, 'launch', 'yolov8_3d.launch.py')
     yolo3d = IncludeLaunchDescription(
@@ -78,6 +84,7 @@ def generate_launch_description():
             'input_depth_info_topic': input_depth_info_topic,
             'depth_image_units_divisor': depth_image_units_divisor,
             'target_frame': target_frame,
+            'threshold': threshold
             }.items()
     )
 
@@ -98,7 +105,7 @@ def generate_launch_description():
         parameters=[
             {'target_frame': target_frame},
             {'debug': debug},
-            {'classes': 'dining table'},
+            {'classes': ''},
         ],
     )
 
@@ -156,6 +163,7 @@ def generate_launch_description():
     ld.add_action(input_depth_topic_arg)
     ld.add_action(input_depth_info_topic_arg)
     ld.add_action(depth_image_units_divisor_arg)
+    ld.add_action(threshold_arg)
 
     ld.add_action(yolo3d)
 
