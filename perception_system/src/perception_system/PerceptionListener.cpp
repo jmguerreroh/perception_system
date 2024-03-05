@@ -30,7 +30,7 @@ namespace perception_system
 PerceptionListener::PerceptionListener(const rclcpp::NodeOptions & options)
 : CascadeLifecycleNode("perception_listener", options)
 {
-  
+
 }
 
 using CallbackReturnT =

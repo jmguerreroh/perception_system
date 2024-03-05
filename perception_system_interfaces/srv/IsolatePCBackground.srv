@@ -1,3 +1,5 @@
+string[] classes []  # list of classes'bacground to isolate, if empty use all
+bool ignore_class false# if true, will isolate all classes`background but specified
 ---
 bool success   # indicate successful run of triggered service
 sensor_msgs/PointCloud2 filtered_pc  # point cloud of collision points
