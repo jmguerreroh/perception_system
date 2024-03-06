@@ -99,7 +99,6 @@ PerceptionListener::on_shutdown(const rclcpp_lifecycle::State & state)
     get_logger(), "[%s] Shutting down from [%s] state...", get_name(),
     state.label().c_str());
 
-
   return CallbackReturnT::SUCCESS;
 }
 
