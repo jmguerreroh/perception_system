@@ -225,7 +225,7 @@ PerceptionListener::get_by_type(const std::string & type)
 {
   std::vector<perception_system_interfaces::msg::Detection> result;
   for (auto & perception : perceptions_) {
-    if (perception.second.type == type) {
+    if (type.empty() || perception.second.type == type) {
       result.push_back(perception.second.msg);
     }
   }
