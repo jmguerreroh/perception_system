@@ -40,7 +40,7 @@ limitations under the License.
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/msg/image.hpp>
 
-#include "perception_system/PerceptionFunctions.hpp"
+#include "perception_system/PerceptionUtils.hpp"
 
 namespace perception_system
 {

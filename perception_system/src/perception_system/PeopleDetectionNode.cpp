@@ -20,7 +20,7 @@ namespace perception_system
 {
 
 PeopleDetectionNode::PeopleDetectionNode(const rclcpp::NodeOptions & options)
-: rclcpp_cascade_lifecycle::CascadeLifecycleNode("people_detection_node", options)
+: rclcpp_cascade_lifecycle::CascadeLifecycleNode("perception_people_detection_node", options)
 {
   // Add the activation of the people detection node
   this->add_activation("yolov8_node");
@@ -35,8 +35,11 @@ CallbackReturnT PeopleDetectionNode::on_configure(const rclcpp_lifecycle::State 
     get_logger(), "[%s] Configuring from [%s] state...", get_name(),
     state.label().c_str());
 
-  pub_ = this->create_publisher<yolov8_msgs::msg::DetectionArray>(
-    "/perception_system/people_detection", 10);
+  this->declare_parameter("target_frame", "head_front_camera_link");
+  this->get_parameter("target_frame", frame_id_);
+
+  pub_ = this->create_publisher<perception_system_interfaces::msg::DetectionArray>(
+    "/perception_system/all_perceptions", 10);
 
   return CallbackReturnT::SUCCESS;
 }
@@ -47,8 +50,9 @@ CallbackReturnT PeopleDetectionNode::on_activate(const rclcpp_lifecycle::State &
     get_logger(), "[%s] Activating from [%s] state...", get_name(),
     state.label().c_str());
 
+  std::string topic_name = std::string(get_namespace()) + "/detections_3d";
   sub_ = this->create_subscription<yolov8_msgs::msg::DetectionArray>(
-    "/perception_system/detections_3d", 10,
+    topic_name, 10,
     [this](yolov8_msgs::msg::DetectionArray::ConstSharedPtr msg) {return this->callback(msg);});
 
   pub_->on_activate();
@@ -101,18 +105,81 @@ CallbackReturnT PeopleDetectionNode::on_error(const rclcpp_lifecycle::State & st
 void PeopleDetectionNode::callback(
   const yolov8_msgs::msg::DetectionArray::ConstSharedPtr & msg)
 {
-  yolov8_msgs::msg::DetectionArray people_array;
+  // Convert from sensor_msgs::Image to cv::Mat using cv_bridge
+  cv_bridge::CvImagePtr image_rgb_ptr;
+  try {
+    image_rgb_ptr = cv_bridge::toCvCopy(msg->source_img, sensor_msgs::image_encodings::BGR8);
+  } catch (cv_bridge::Exception & e) {
+    RCLCPP_ERROR(get_logger(), "cv_bridge exception: %s", e.what());
+    return;
+  }
+  cv::Mat image = image_rgb_ptr->image;
+
+  perception_system_interfaces::msg::DetectionArray perception_array;
+  perception_array.header = msg->header;
+  perception_array.source_img = msg->source_img;
 
   for (auto detection : msg->detections) {
-    if (detection.class_name == "person") {
-      people_array.detections.push_back(detection);
+    if ((detection.class_name == "person") ) {
+      perception_system_interfaces::msg::Detection perception;
+      perception.header = msg->header;
+      std::string id = underscore(detection.class_name + "_" + detection.id);
+      perception.header.frame_id = frame_id_;
+      perception.unique_id = id;
+      perception.type = detection.class_name;
+      perception.class_id = stoi(detection.id);
+      perception.class_name = detection.class_name;
+      perception.score = detection.score;
+      perception.center2d.x = detection.bbox.center.position.x;
+      perception.center2d.y = detection.bbox.center.position.y;
+      perception.bbox2d.x = detection.bbox.size.x;
+      perception.bbox2d.y = detection.bbox.size.y;
+      perception.bbox2d.z = 0.0;
+      perception.center3d = detection.bbox3d.center;
+      perception.bbox3d = detection.bbox3d.size;
+
+      cv::Point2d min_pt = cv::Point2d(
+        round(detection.bbox.center.position.x - detection.bbox.size.x / 2.0),
+        round(detection.bbox.center.position.y - detection.bbox.size.y / 2.0));
+      cv::Point2d max_pt = cv::Point2d(
+        round(detection.bbox.center.position.x + detection.bbox.size.x / 2.0),
+        round(detection.bbox.center.position.y + detection.bbox.size.y / 2.0));
+
+      min_pt = checkPoint(min_pt, image.size());
+      max_pt = checkPoint(max_pt, image.size());
+
+      cv::Mat roi = image(cv::Rect(min_pt, max_pt));
+      sensor_msgs::msg::Image::SharedPtr img_msg;
+      try {
+        // Convert from cv::Mat to sensor_msgs::msg::Image
+        img_msg = cv_bridge::CvImage(std_msgs::msg::Header(), "bgr8", roi).toImageMsg();
+      } catch (cv_bridge::Exception & e) {
+        RCLCPP_ERROR(get_logger(), "cv_bridge exception: %s", e.what());
+        return;
+      }
+      perception.image = *img_msg;
+      // Convert the ROI to the HSV color space
+      cv::Mat hsvRoi;
+      cv::cvtColor(roi, hsvRoi, cv::COLOR_BGR2HSV);
+
+      perception.collision = false;
+      perception.skeleton2d = detection.keypoints.data;
+      perception.skeleton3d = detection.keypoints3d.data;
+      perception.pointing_direction = pointing(detection.keypoints);
+
+      // Calculate the average color values (HSV) for each half
+      std::vector<cv::Scalar> avg = calculateAverageHalves(roi);
+
+      // Generate a unique identifier from the average color values
+      int64_t uniqueID = generateUniqueIDFromHSVPair(avg[0], avg[1]);
+      perception.color_person = uniqueID;
+
+      perception_array.detections.push_back(perception);
     }
   }
 
-  if (people_array.detections.size() > 0) {
-    people_array.header = msg->header;
-    people_array.source_img = msg->source_img;
-    pub_->publish(people_array);
+  if (perception_array.detections.size() > 0) {
+    pub_->publish(perception_array);
   }
 }
 

@@ -18,6 +18,7 @@
 
 #include <iostream>
 #include <algorithm>
+#include <variant>
 
 #include "pcl/point_types.h"
 #include "pcl_conversions/pcl_conversions.h"
@@ -41,9 +42,40 @@
 #include "sensor_msgs/msg/point_cloud2.hpp"
 #include <vision_msgs/msg/detection3_d_array.hpp>
 #include <image_geometry/pinhole_camera_model.h>
+#include <cv_bridge/cv_bridge.h>
 
 namespace perception_system
 {
+
+typedef std::variant<rclcpp::Node::SharedPtr, rclcpp_lifecycle::LifecycleNode::SharedPtr>
+  NodeLikeSharedPtr;
+
+// structure mocking the rclcpp::NodeInterfaces, not yet available in Humble
+struct NodeInterfaces
+{
+  const rclcpp::node_interfaces::NodeBaseInterface::SharedPtr &
+  get_node_base_interface() const {return base;}
+  rclcpp::node_interfaces::NodeBaseInterface::SharedPtr &
+  get_node_base_interface() {return base;}
+  const rclcpp::node_interfaces::NodeLoggingInterface::SharedPtr &
+  get_node_logging_interface() const {return logging;}
+  rclcpp::node_interfaces::NodeLoggingInterface::SharedPtr &
+  get_node_logging_interface() {return logging;}
+  const rclcpp::node_interfaces::NodeParametersInterface::SharedPtr &
+  get_node_parameters_interface() const {return parameters;}
+  rclcpp::node_interfaces::NodeParametersInterface::SharedPtr &
+  get_node_parameters_interface() {return parameters;}
+  const rclcpp::node_interfaces::NodeTopicsInterface::SharedPtr &
+  get_node_topics_interface() const {return topics;}
+  rclcpp::node_interfaces::NodeTopicsInterface::SharedPtr &
+  get_node_topics_interface() {return topics;}
+
+  rclcpp::node_interfaces::NodeBaseInterface::SharedPtr base;
+  rclcpp::node_interfaces::NodeLoggingInterface::SharedPtr logging;
+  rclcpp::node_interfaces::NodeParametersInterface::SharedPtr parameters;
+  rclcpp::node_interfaces::NodeTopicsInterface::SharedPtr topics;
+};
+
 inline double distance3D(double x1, double y1, double z1, double x2, double y2, double z2)
 {
   return std::sqrt(std::pow(x2 - x1, 2) + std::pow(y2 - y1, 2) + std::pow(z2 - z1, 2));
@@ -108,6 +140,12 @@ inline int64_t generateUniqueIDFromHSVPair(const cv::Scalar & hsv1, const cv::Sc
     v01_2;
 
   return static_cast<int64_t>(resultado);
+}
+
+inline std::vector<int8_t> mean_color(const cv::Mat & hsv)
+{
+  cv::Scalar avg = cv::mean(hsv);
+  return {static_cast<int8_t>(avg[0]), static_cast<int8_t>(avg[1]), static_cast<int8_t>(avg[2])};
 }
 
 inline cv::Point2d checkPoint(cv::Point2d point, cv::Size size)
@@ -188,6 +226,97 @@ inline float diffIDs(int64_t id1, ino64_t id2)
   // Return the average difference between the two unique IDs in HSV space with a weight of 2 for H and 1 for S and V
   return (diff_h_up[0] * 2 + diff_s_up[0] + diff_v_up[0] + diff_h_down[0] * 2 + diff_s_down[0] +
          diff_v_down[0]) / 6;
+}
+
+inline std::string underscore(std::string str)
+{
+  std::replace(str.begin(), str.end(), ' ', '_');
+  return str;
+}
+
+inline double arm_distance(double x1, double y1, double x2, double y2)
+{
+  return std::sqrt(std::pow(x2 - x1, 2) + std::pow(y2 - y1, 2));
+}
+
+inline int points_direction(double x1, double y1, double x2, double y2)
+{
+  // Calculate the change in x and y
+  double deltaX = x2 - x1;
+  double deltaY = y2 - y1;
+
+  // Calculate the direction in radians
+  double rad = std::atan2(deltaY, deltaX);
+
+  // Change the direction to degrees
+  double deg = fmod((rad * (180.0 / M_PI) + 360.0), 360.0);
+
+  // Get the direction as a number between 0 and 7
+  int num = static_cast<int>((deg + 22.5) / 45.0) % 8;
+
+  // 0 is right, 1 is down-right, 2 is down, 3 is down-left, 4 is left, 5 is up-left, 6 is up, 7 is up-right
+  return num;
+}
+
+inline int pointing(yolov8_msgs::msg::KeyPoint2DArray skeleton)
+{
+  yolov8_msgs::msg::Point2D left_elbow, left_wrist, left_hip;
+  yolov8_msgs::msg::Point2D right_elbow, right_wrist, right_hip;
+  bool left_elbow_found = false;
+  bool left_wrist_found = false;
+  bool left_hip_found = false;
+  bool right_elbow_found = false;
+  bool right_wrist_found = false;
+  bool right_hip_found = false;
+
+  for (auto keypoint : skeleton.data) {
+    switch (keypoint.id) {
+      case 8:
+        left_elbow = keypoint.point;
+        left_elbow_found = true;
+        break;
+      case 10:
+        left_wrist = keypoint.point;
+        left_wrist_found = true;
+        break;
+      case 12:
+        left_hip = keypoint.point;
+        left_hip_found = true;
+        break;
+      case 9:
+        right_elbow = keypoint.point;
+        right_elbow_found = true;
+        break;
+      case 11:
+        right_wrist = keypoint.point;
+        right_wrist_found = true;
+        break;
+      case 13:
+        right_hip = keypoint.point;
+        right_hip_found = true;
+        break;
+
+      default:
+        break;
+    }
+  }
+
+  bool left_arm = (left_elbow_found && left_wrist_found && left_hip_found);
+  bool right_arm = (right_elbow_found && right_wrist_found && right_hip_found);
+
+  if (!left_arm || !right_arm) {
+    // std::cout << "No arms found" << std::endl;
+    return -1;
+  }
+
+  double left_distance = arm_distance(left_hip.x, left_hip.y, left_wrist.x, left_wrist.y);
+  double right_distance = arm_distance(right_hip.x, right_hip.y, right_wrist.x, right_wrist.y);
+
+  if (left_distance < right_distance) {   // use right arm
+    return points_direction(right_elbow.x, right_elbow.y, right_wrist.x, right_wrist.y);
+  } else {   // use left arm
+    return points_direction(left_elbow.x, left_elbow.y, left_wrist.x, left_wrist.y);
+  }
 }
 
 inline pcl::PointCloud<pcl::PointXYZRGB> extractNPlanes(
@@ -415,7 +544,7 @@ projectCloud(
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr detection_cloud_raw(
       new pcl::PointCloud<pcl::PointXYZRGB>());
 
-    if (yolo_result_msg->detections[i].mask.data.empty()) {
+    if (yolo_result_msg->detections[i].mask.data.empty() || erosion) {
       detection_cloud_raw =
         processPointsWithBbox(cloud, yolo_result_msg->detections[i], cam_model_);
     } else {

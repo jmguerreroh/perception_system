@@ -14,13 +14,13 @@
   limitations under the License.
 */
 
-#include "perception_system/ColorPersonNode.hpp"
+#include "perception_system/DebugNode.hpp"
 
 int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
 
-  auto cv_node = std::make_shared<perception_system::ColorPersonNode>();
+  auto cv_node = std::make_shared<perception_system::DebugNode>();
 
   rclcpp::spin(cv_node->get_node_base_interface());
 
