@@ -141,6 +141,7 @@ private:
 
   float cluster_tolerance_;
   float voxel_leaf_size_;
+  float erode_factor_;
   int min_cluster_size_;
   int max_cluster_size_;
 };

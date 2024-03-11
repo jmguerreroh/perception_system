@@ -174,7 +174,7 @@ inline int64_t getUniqueIDFromDetection(
   try {
     image_rgb_ptr = cv_bridge::toCvCopy(img, sensor_msgs::image_encodings::BGR8);
   } catch (cv_bridge::Exception & e) {
-    std::cout << "cv_bridge exception: " << e.what() << std::endl;
+    std::cerr << "cv_bridge exception: " << e.what() << std::endl;
     return -1;
   }
 
@@ -452,7 +452,6 @@ processPointsWithBbox(
       uv.y >= detection2d_msg.bbox.center.position.y - detection2d_msg.bbox.size.y / 2 &&
       uv.y <= detection2d_msg.bbox.center.position.y + detection2d_msg.bbox.size.y / 2)
     {
-      std::cout << "Point inside bbox" << std::endl;
       ret->points.push_back(point);
     }
   }
@@ -534,9 +533,8 @@ projectCloud(
   const double & cluster_tolerance_,
   const uint16_t & min_cluster_size_,
   const uint16_t & max_cluster_size_,
-  const std_msgs::msg::Header & header
-
-)
+  const std_msgs::msg::Header & header,
+  bool erosion = false)
 {
   sensor_msgs::msg::PointCloud2 combine_detection_cloud_msg;
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr combine_detection_cloud(
@@ -546,7 +544,7 @@ projectCloud(
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr detection_cloud_raw(
       new pcl::PointCloud<pcl::PointXYZRGB>());
 
-    if (yolo_result_msg->detections[i].mask.data.empty()) {
+    if (yolo_result_msg->detections[i].mask.data.empty() || erosion) {
       detection_cloud_raw =
         processPointsWithBbox(cloud, yolo_result_msg->detections[i], cam_model_);
     } else {
@@ -556,12 +554,16 @@ projectCloud(
     }
 
     if (!detection_cloud_raw->points.empty()) {
-      pcl::PointCloud<pcl::PointXYZRGB>::Ptr closest_detection_cloud(
-        new pcl::PointCloud<pcl::PointXYZRGB>());
-      closest_detection_cloud = euclideanClusterExtraction(
-        detection_cloud_raw, cluster_tolerance_,
-        min_cluster_size_, max_cluster_size_);
-      *combine_detection_cloud += *closest_detection_cloud;
+      if (!erosion) {
+        pcl::PointCloud<pcl::PointXYZRGB>::Ptr closest_detection_cloud(
+          new pcl::PointCloud<pcl::PointXYZRGB>());
+        closest_detection_cloud = euclideanClusterExtraction(
+          detection_cloud_raw, cluster_tolerance_,
+          min_cluster_size_, max_cluster_size_);
+        *combine_detection_cloud += *closest_detection_cloud;
+      }
+      *combine_detection_cloud += *detection_cloud_raw;
+
     } else {
       std::cerr << "Detection for " << yolo_result_msg->detections[i].class_name <<
         " couldnt be processed" << std::endl;
@@ -570,6 +572,30 @@ projectCloud(
   pcl::toROSMsg(*combine_detection_cloud, combine_detection_cloud_msg);
   combine_detection_cloud_msg.header = header;
   return combine_detection_cloud_msg;
+}
+
+inline yolov8_msgs::msg::DetectionArray
+erodeDetections(
+  const yolov8_msgs::msg::DetectionArray::ConstSharedPtr & yolo_result_msg,
+  const double & erode_factor)
+{
+  yolov8_msgs::msg::DetectionArray eroded_yolo_result_msg;
+  eroded_yolo_result_msg.header = yolo_result_msg->header;
+  if (erode_factor == 1.0 || erode_factor <= 0.0 || yolo_result_msg->detections.empty()) {
+    return *yolo_result_msg;
+  }
+
+  for (size_t i = 0; i < yolo_result_msg->detections.size(); i++) {
+    yolov8_msgs::msg::Detection detection = yolo_result_msg->detections[i];
+    detection.bbox.size.x *= erode_factor;
+    detection.bbox.size.y *= erode_factor;
+    eroded_yolo_result_msg.detections.push_back(detection);
+
+    if (yolo_result_msg->detections[i].mask.data.empty()) {
+      continue;
+    }
+  }
+  return eroded_yolo_result_msg;
 }
 
 } // namespace perception_system
