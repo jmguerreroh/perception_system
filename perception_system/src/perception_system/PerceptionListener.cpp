@@ -29,7 +29,7 @@ namespace perception_system
 {
 
 PerceptionListener::PerceptionListener(const rclcpp::NodeOptions & options)
-: CascadeLifecycleNode("perception_listener", options)
+: CascadeLifecycleNode("perception_listener","perception_system", options)
 {
   this->declare_parameter("max_time_perception", 0.01);
   this->declare_parameter("max_time_interest", 0.01);
