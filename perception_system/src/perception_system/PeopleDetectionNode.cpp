@@ -25,7 +25,6 @@ PeopleDetectionNode::PeopleDetectionNode(const rclcpp::NodeOptions & options)
   // Create parameters
   this->declare_parameter("target_frame", "head_front_camera_link");
   this->declare_parameter("debug", false);
-  this->declare_parameter("tracking", false);
   // Add the activation of the people detection node
   this->add_activation("yolov8_node");
   this->add_activation("yolov8_detect_3d_node");
