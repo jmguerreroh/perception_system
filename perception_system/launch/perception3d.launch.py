@@ -49,10 +49,6 @@ def generate_launch_description():
     debug = LaunchConfiguration('debug')
     debug_arg = DeclareLaunchArgument(
         'debug', default_value='True', description='Debug mode')
-    
-    tracking = LaunchConfiguration('tracking')
-    tracking_arg = DeclareLaunchArgument(
-        'tracking', default_value='True', description='Turn ono/off tracking mode')
 
     input_image_topic = LaunchConfiguration('input_image_topic')
     input_image_topic_arg = DeclareLaunchArgument(
@@ -108,7 +104,6 @@ def generate_launch_description():
         parameters=[
             {'target_frame': target_frame},
             {'debug': debug},
-            {'tracking': tracking},
         ],
     )
 
@@ -143,7 +138,6 @@ def generate_launch_description():
     ld.add_action(target_frame_arg)
     ld.add_action(ns_arg)
     ld.add_action(debug_arg)
-    ld.add_action(tracking_arg)
     ld.add_action(input_image_topic_arg)
     ld.add_action(input_depth_topic_arg)
     ld.add_action(input_depth_info_topic_arg)
