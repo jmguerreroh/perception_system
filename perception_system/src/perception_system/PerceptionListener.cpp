@@ -31,7 +31,9 @@ namespace perception_system
 PerceptionListener::PerceptionListener(const rclcpp::NodeOptions & options)
 : CascadeLifecycleNode("perception_listener", options)
 {
-  this->add_activation("perception_debug_node");
+  this->declare_parameter("max_time_perception", 0.01);
+  this->declare_parameter("max_time_interest", 0.01);
+  this->declare_parameter("debug", false);
   // set_interest("bowl", true);
 }
 
@@ -45,10 +47,12 @@ PerceptionListener::on_configure(const rclcpp_lifecycle::State & state)
     get_logger(), "[%s] Configuring from [%s] state...", get_name(),
     state.label().c_str());
 
-  this->declare_parameter("max_time_perception", 0.01);
-  this->get_parameter("max_time_perception", max_time_perception_);
-  this->declare_parameter("max_time_interest", 0.01);
+  this->get_parameter("max_time_perception", max_time_perception_);  
   this->get_parameter("max_time_interest", max_time_interest_);
+  if (this->get_parameter("debug").as_bool())
+  {
+    this->add_activation("yolov8_debug_node");
+  }
 
   last_update_ = rclcpp::Clock(RCL_STEADY_TIME).now();
 
@@ -62,7 +66,7 @@ PerceptionListener::on_activate(const rclcpp_lifecycle::State & state)
     get_logger(), "[%s] Activating from [%s] state...", get_name(),
     state.label().c_str());
 
-  std::string topic_name = std::string(get_namespace()) + "/all_perceptions";
+  std::string topic_name = "all_perceptions";
   percept_sub_ = this->create_subscription<perception_system_interfaces::msg::DetectionArray>(
     topic_name, 10,
     std::bind(&PerceptionListener::perception_callback, this, std::placeholders::_1));

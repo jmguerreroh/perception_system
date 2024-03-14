@@ -21,7 +21,9 @@ namespace perception_system
 
 DebugNode::DebugNode(const rclcpp::NodeOptions & options)
 : rclcpp_cascade_lifecycle::CascadeLifecycleNode("perception_debug_node", options)
-{}
+{
+    this->declare_parameter("target_frame", "head_front_camera_link");
+}
 
 CallbackReturnT DebugNode::on_configure(const rclcpp_lifecycle::State & state)
 {
@@ -29,12 +31,9 @@ CallbackReturnT DebugNode::on_configure(const rclcpp_lifecycle::State & state)
     get_logger(), "[%s] Configuring from [%s] state...", get_name(),
     state.label().c_str());
 
-  this->declare_parameter("target_frame", "head_front_camera_link");
   this->get_parameter("target_frame", frame_id_);
 
-  char * topic_name = (char *)malloc(strlen(this->get_namespace()) + strlen("/bb_objects") + 1);
-  strcpy(topic_name, this->get_namespace());
-  strcat(topic_name, "/bb_objects");
+  std::string topic_name = "bb_objects";
   markers_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>(
     topic_name, 10);
 
@@ -47,10 +46,7 @@ CallbackReturnT DebugNode::on_activate(const rclcpp_lifecycle::State & state)
     get_logger(), "[%s] Activating from [%s] state...", get_name(),
     state.label().c_str());
 
-  char * topic_name =
-    (char *)malloc(strlen(this->get_namespace()) + strlen("/all_perceptions") + 1);
-  strcpy(topic_name, this->get_namespace());
-  strcat(topic_name, "/all_perceptions");
+  std::string topic_name = "all_perceptions";
   sub_ = this->create_subscription<perception_system_interfaces::msg::DetectionArray>(
     topic_name, 10,
     std::bind(&DebugNode::callback, this, std::placeholders::_1));

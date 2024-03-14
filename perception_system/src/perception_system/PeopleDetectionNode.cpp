@@ -22,11 +22,14 @@ namespace perception_system
 PeopleDetectionNode::PeopleDetectionNode(const rclcpp::NodeOptions & options)
 : rclcpp_cascade_lifecycle::CascadeLifecycleNode("perception_people_detection_node", options)
 {
+  // Create parameters
+  this->declare_parameter("target_frame", "head_front_camera_link");
+  this->declare_parameter("debug", false);
+  this->declare_parameter("tracking", false);
   // Add the activation of the people detection node
   this->add_activation("yolov8_node");
   this->add_activation("yolov8_detect_3d_node");
   this->add_activation("yolov8_tracking_node");
-  this->add_activation("yolov8_debug_node");
 }
 
 CallbackReturnT PeopleDetectionNode::on_configure(const rclcpp_lifecycle::State & state)
@@ -35,11 +38,14 @@ CallbackReturnT PeopleDetectionNode::on_configure(const rclcpp_lifecycle::State 
     get_logger(), "[%s] Configuring from [%s] state...", get_name(),
     state.label().c_str());
 
-  this->declare_parameter("target_frame", "head_front_camera_link");
   this->get_parameter("target_frame", frame_id_);
+  if (this->get_parameter("debug").as_bool())
+  {
+    this->add_activation("yolov8_debug_node");
+  }
 
   pub_ = this->create_publisher<perception_system_interfaces::msg::DetectionArray>(
-    "/perception_system/all_perceptions", 10);
+    "all_perceptions", 10);
 
   return CallbackReturnT::SUCCESS;
 }
@@ -50,7 +56,7 @@ CallbackReturnT PeopleDetectionNode::on_activate(const rclcpp_lifecycle::State &
     get_logger(), "[%s] Activating from [%s] state...", get_name(),
     state.label().c_str());
 
-  std::string topic_name = std::string(get_namespace()) + "/detections_3d";
+  std::string topic_name = "detections_3d";
   sub_ = this->create_subscription<yolov8_msgs::msg::DetectionArray>(
     topic_name, 10,
     [this](yolov8_msgs::msg::DetectionArray::ConstSharedPtr msg) {return this->callback(msg);});
