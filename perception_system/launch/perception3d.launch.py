@@ -103,6 +103,7 @@ def generate_launch_description():
         emulate_tty=True,
         parameters=[
             {'target_frame': target_frame},
+            {'debug': debug},
         ],
     )
 
@@ -115,6 +116,7 @@ def generate_launch_description():
         parameters=[
             {'target_frame': target_frame},
             {'classes': 'all'},
+            {'debug': debug}
         ],
     )
 
