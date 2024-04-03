@@ -21,6 +21,11 @@ limitations under the License.
 #include "perception_system_interfaces/msg/detection.hpp"
 #include "perception_system_interfaces/msg/detection_array.hpp"
 
+#include "geometry_msgs/msg/pose_stamped.hpp"
+#include "geometry_msgs/msg/transform_stamped.hpp"
+
+#include <tf2/transform_datatypes.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 #include "perception_system/PerceptionListener.hpp"
 
@@ -34,7 +39,8 @@ PerceptionListener::PerceptionListener(const rclcpp::NodeOptions & options)
   this->declare_parameter("max_time_perception", 0.01);
   this->declare_parameter("max_time_interest", 0.01);
   this->declare_parameter("debug", false);
-  // set_interest("bowl", true);
+  this->declare_parameter("tf_frame_camera_", "head_front_camera_link");
+  this->declare_parameter("tf_frame_map_", "map");
 }
 
 using CallbackReturnT =
@@ -49,12 +55,18 @@ PerceptionListener::on_configure(const rclcpp_lifecycle::State & state)
 
   this->get_parameter("max_time_perception", max_time_perception_);  
   this->get_parameter("max_time_interest", max_time_interest_);
+  this->get_parameter("tf_frame_camera_", tf_frame_camera_);
+  this->get_parameter("tf_frame_map_", tf_frame_map_);
   if (this->get_parameter("debug").as_bool())
   {
     this->add_activation("yolov8_debug_node");
   }
 
   last_update_ = rclcpp::Clock(RCL_STEADY_TIME).now();
+
+  tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
+  tf_listener_ = std::make_unique<tf2_ros::TransformListener>(*tf_buffer_);
+  tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
 
   return CallbackReturnT::SUCCESS;
 }
@@ -235,5 +247,60 @@ PerceptionListener::get_by_type(const std::string & type)
   }
   return result;
 }
+
+// Create a transform from map to object and send it
+int 
+PerceptionListener::publicTF(
+  const perception_system_interfaces::msg::Detection & detected_object)
+{
+  geometry_msgs::msg::TransformStamped map2camera_msg;
+  try {
+    map2camera_msg = tf_buffer_->lookupTransform(
+      tf_frame_map_, tf_frame_camera_,
+      tf2::TimePointZero);
+  } catch (const tf2::TransformException & ex) {
+    RCLCPP_INFO(
+      this->get_logger(), "Could not transform %s to %s: %s",
+      tf_frame_map_.c_str(), tf_frame_camera_.c_str(), ex.what());
+    return -1;
+  }
+
+  tf2::Transform camera2object;
+  camera2object.setOrigin(
+    tf2::Vector3(
+      detected_object.center3d.position.x,
+      detected_object.center3d.position.y,
+      detected_object.center3d.position.z));
+  camera2object.setRotation(tf2::Quaternion(0.0, 0.0, 0.0, 1.0));
+
+  tf2::Transform map2camera;
+  tf2::fromMsg(map2camera_msg.transform, map2camera);
+
+  tf2::Transform map2object = map2camera * camera2object;
+  
+  // create a transform message from tf2::Transform
+  geometry_msgs::msg::TransformStamped map2object_msg;
+  map2object_msg.header.stamp = detected_object.header.stamp;
+  map2object_msg.header.frame_id = tf_frame_map_;
+  map2object_msg.child_frame_id = detected_object.unique_id;
+  map2object_msg.transform = tf2::toMsg(map2object);
+
+  tf_broadcaster_->sendTransform(map2object_msg);
+  return 0;
+}
+
+// Public all the transforms in interests_ whose status is true
+void PerceptionListener::publicTFinterest()
+{
+  for (auto & interest : interests_) {
+    if (interest.second.status) {
+      auto detections = get_by_type(interest.first);
+      for (auto & detection : detections) {
+        publicTF(detection);
+      }
+    }
+  }
+}
+
 
 }  // namespace perception_system

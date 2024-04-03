@@ -27,12 +27,12 @@ find_package(image_geometry REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(message_filters REQUIRED)
 find_package(tf2_ros REQUIRED)
+find_package(tf2 REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(perception_system_interfaces REQUIRED)
 find_package(tf2_eigen REQUIRED)
 # find_package(Python COMPONENTS Interpreter Development)
-# find_package(pybind11 REQUIRED)
-# find_package(tf2_geometry_msgs REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
 find_package(PCL 1.8 REQUIRED QUIET)
 find_package(pcl_conversions REQUIRED)
 
@@ -66,11 +66,10 @@ set(dependencies
   # depth_image_proc
   Eigen3
   message_filters
-  tf2_ros
+  tf2
   tf2_eigen
   geometry_msgs
-  # pybind11
-  # tf2_geometry_msgs
+  tf2_geometry_msgs
   perception_system_interfaces
 )
 

@@ -47,35 +47,6 @@
 namespace perception_system
 {
 
-typedef std::variant<rclcpp::Node::SharedPtr, rclcpp_lifecycle::LifecycleNode::SharedPtr>
-  NodeLikeSharedPtr;
-
-// structure mocking the rclcpp::NodeInterfaces, not yet available in Humble
-struct NodeInterfaces
-{
-  const rclcpp::node_interfaces::NodeBaseInterface::SharedPtr &
-  get_node_base_interface() const {return base;}
-  rclcpp::node_interfaces::NodeBaseInterface::SharedPtr &
-  get_node_base_interface() {return base;}
-  const rclcpp::node_interfaces::NodeLoggingInterface::SharedPtr &
-  get_node_logging_interface() const {return logging;}
-  rclcpp::node_interfaces::NodeLoggingInterface::SharedPtr &
-  get_node_logging_interface() {return logging;}
-  const rclcpp::node_interfaces::NodeParametersInterface::SharedPtr &
-  get_node_parameters_interface() const {return parameters;}
-  rclcpp::node_interfaces::NodeParametersInterface::SharedPtr &
-  get_node_parameters_interface() {return parameters;}
-  const rclcpp::node_interfaces::NodeTopicsInterface::SharedPtr &
-  get_node_topics_interface() const {return topics;}
-  rclcpp::node_interfaces::NodeTopicsInterface::SharedPtr &
-  get_node_topics_interface() {return topics;}
-
-  rclcpp::node_interfaces::NodeBaseInterface::SharedPtr base;
-  rclcpp::node_interfaces::NodeLoggingInterface::SharedPtr logging;
-  rclcpp::node_interfaces::NodeParametersInterface::SharedPtr parameters;
-  rclcpp::node_interfaces::NodeTopicsInterface::SharedPtr topics;
-};
-
 inline double distance3D(double x1, double y1, double z1, double x2, double y2, double z2)
 {
   return std::sqrt(std::pow(x2 - x1, 2) + std::pow(y2 - y1, 2) + std::pow(z2 - z1, 2));

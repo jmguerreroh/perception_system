@@ -73,7 +73,7 @@ def generate_launch_description():
         'depth_image_units_divisor', default_value='1',
         # 1 value for simulation, 1000 value in real robot
         description='Depth image units divisor')
-    
+
     threshold = LaunchConfiguration("threshold")
     threshold_arg = DeclareLaunchArgument(
         "threshold",
@@ -116,7 +116,7 @@ def generate_launch_description():
         parameters=[
             {'target_frame': target_frame},
             {'classes': 'all'},
-            {'debug': debug}
+            {'debug': debug},
         ],
     )
 
