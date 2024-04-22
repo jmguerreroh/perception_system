@@ -109,9 +109,9 @@ CollisionServer::on_configure(const rclcpp_lifecycle::State & state)
   sync_->registerCallback(std::bind(&CollisionServer::sync_cb, this, _1, _2, _3));
   // Latched topic
   point_cloud_pub_ = create_publisher<sensor_msgs::msg::PointCloud2>(
-    "pointcloud_filtered", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable());
+    "pointcloud_filtered", 1);
   depth_pub_ = create_publisher<sensor_msgs::msg::Image>(
-    "depth_filtered", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable());
+    "depth_filtered", 1);
 
   return CallbackReturn::SUCCESS;
 }
