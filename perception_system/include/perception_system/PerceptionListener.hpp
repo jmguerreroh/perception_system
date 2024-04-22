@@ -66,6 +66,11 @@ public:
   std::vector<perception_system_interfaces::msg::Detection> get_by_id(const std::string & id);
   std::vector<perception_system_interfaces::msg::Detection> get_by_type(const std::string & type);
   void publicTFinterest();
+  // public tfs with custom sorting
+  void publicSortedTFinterest(std::function<bool(const perception_system_interfaces::msg::Detection&, const perception_system_interfaces::msg::Detection&)> comp = [](const perception_system_interfaces::msg::Detection& a, const perception_system_interfaces::msg::Detection& b) {
+    // Default sorting behavior
+    return a.center3d.position.z < b.center3d.position.z; 
+  });
 
   using CallbackReturnT =
     rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
@@ -89,7 +94,7 @@ private:
   std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
   void perception_callback(perception_system_interfaces::msg::DetectionArray::UniquePtr msg);
-  int publicTF(const perception_system_interfaces::msg::Detection & detected_object);
+  int publicTF(const perception_system_interfaces::msg::Detection & detected_object, const std::string & custom_suffix = "");
 
 
   double max_time_perception_;
