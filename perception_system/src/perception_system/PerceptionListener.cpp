@@ -32,10 +32,10 @@ limitations under the License.
 
 namespace perception_system
 {
-  using namespace std::chrono_literals;
+using namespace std::chrono_literals;
 
 PerceptionListener::PerceptionListener(const rclcpp::NodeOptions & options)
-: CascadeLifecycleNode("perception_listener","perception_system", options)
+: CascadeLifecycleNode("perception_listener", "perception_system", options)
 {
   this->declare_parameter("max_time_perception", 0.01);
   this->declare_parameter("max_time_interest", 0.01);
@@ -54,19 +54,18 @@ PerceptionListener::on_configure(const rclcpp_lifecycle::State & state)
     get_logger(), "[%s] Configuring from [%s] state...", get_name(),
     state.label().c_str());
 
-  this->get_parameter("max_time_perception", max_time_perception_);  
+  this->get_parameter("max_time_perception", max_time_perception_);
   this->get_parameter("max_time_interest", max_time_interest_);
   this->get_parameter("tf_frame_camera_", tf_frame_camera_);
   this->get_parameter("tf_frame_map_", tf_frame_map_);
-  if (this->get_parameter("debug").as_bool())
-  {
+  if (this->get_parameter("debug").as_bool()) {
     this->add_activation("yolov8_debug_node");
   }
 
   last_update_ = rclcpp::Clock(RCL_STEADY_TIME).now();
 
   tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock(), 120ms); // 30 Hz liveliness so it is always updated
-  tf_listener_ = std::make_unique<tf2_ros::TransformListener>(*tf_buffer_); 
+  tf_listener_ = std::make_unique<tf2_ros::TransformListener>(*tf_buffer_);
   tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
 
   return CallbackReturnT::SUCCESS;
@@ -250,9 +249,10 @@ PerceptionListener::get_by_type(const std::string & type)
 }
 
 // Create a transform from map to object and send it
-int 
+int
 PerceptionListener::publicTF(
-  const perception_system_interfaces::msg::Detection & detected_object, const std::string & custom_suffix)
+  const perception_system_interfaces::msg::Detection & detected_object,
+  const std::string & custom_suffix)
 {
   geometry_msgs::msg::TransformStamped map2camera_msg;
   try {
@@ -278,12 +278,14 @@ PerceptionListener::publicTF(
   tf2::fromMsg(map2camera_msg.transform, map2camera);
 
   tf2::Transform map2object = map2camera * camera2object;
-  
+
   // create a transform message from tf2::Transform
   geometry_msgs::msg::TransformStamped map2object_msg;
   map2object_msg.header.stamp = detected_object.header.stamp;
   map2object_msg.header.frame_id = tf_frame_map_;
-  map2object_msg.child_frame_id = (custom_suffix.empty()) ? detected_object.unique_id : (detected_object.class_name + "_" + custom_suffix);
+  map2object_msg.child_frame_id =
+    (custom_suffix.empty()) ? detected_object.unique_id : (detected_object.class_name + "_" +
+    custom_suffix);
   map2object_msg.transform = tf2::toMsg(map2object);
 
   tf_broadcaster_->sendTransform(map2object_msg);

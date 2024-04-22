@@ -39,10 +39,9 @@ CallbackReturnT ObjectsDetectionNode::on_configure(const rclcpp_lifecycle::State
     get_logger(), "[%s] Configuring from [%s] state...", get_name(),
     state.label().c_str());
 
-  this->get_parameter("classes", classes_);  
+  this->get_parameter("classes", classes_);
   this->get_parameter("target_frame", frame_id_);
-  if (this->get_parameter("debug").as_bool())
-  {
+  if (this->get_parameter("debug").as_bool()) {
     this->add_activation("yolov8_debug_node");
   }
 
