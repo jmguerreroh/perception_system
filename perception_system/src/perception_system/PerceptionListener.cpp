@@ -200,9 +200,9 @@ void PerceptionListener::set_interest(const std::string & id, bool status)
           id,
           {status, steady_clock.now()}));
       if (id.find("person") != std::string::npos) {
-        this->add_activation("perception_people_detection_node");
+        this->add_activation("perception_people_detection");
       } else {
-        this->add_activation("perception_objects_detection_node");
+        this->add_activation("perception_objects_detection");
       }
       RCLCPP_INFO(get_logger(), "Added interest: %s, %d", id.c_str(), status);
     } else {
