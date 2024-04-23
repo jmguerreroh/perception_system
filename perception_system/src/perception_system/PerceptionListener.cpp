@@ -212,9 +212,9 @@ void PerceptionListener::set_interest(const std::string & id, bool status)
   } else {
     interests_.erase(id);
     if (id.find("person") != std::string::npos) {
-      this->remove_activation("perception_people_detection_node");
+      this->remove_activation("perception_people_detection");
     } else {
-      this->remove_activation("perception_objects_detection_node");
+      this->remove_activation("perception_objects_detection");
     }
     RCLCPP_INFO(get_logger(), "Removed interest: %s, %d", id.c_str(), status);
   }
