@@ -48,7 +48,7 @@ set(dependencies
   # image_transport
   cv_bridge
   tf2_ros
-  geometry_msgs  
+  geometry_msgs
   # ament_index_cpp
   # image_transport
   # sensor_msgs
@@ -106,7 +106,7 @@ ament_target_dependencies(perception_listener ${dependencies})
 target_link_libraries(perception_listener ${PROJECT_NAME})
 
 install(TARGETS
- ${PROJECT_NAME}
+  ${PROJECT_NAME}
   dt_people
   dt_objects
   dt_debug
@@ -122,8 +122,7 @@ install(DIRECTORY launch models
         DESTINATION share/${PROJECT_NAME})
 
 install(DIRECTORY include/
-        DESTINATION include/
-      )
+        DESTINATION include/)
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights
