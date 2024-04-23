@@ -20,7 +20,7 @@ namespace perception_system
 {
 
 ObjectsDetectionNode::ObjectsDetectionNode(const rclcpp::NodeOptions & options)
-: rclcpp_cascade_lifecycle::CascadeLifecycleNode("perception_objects_detection", options)
+: rclcpp_cascade_lifecycle::CascadeLifecycleNode("perception_objects_detection", "perception_system", options)
 {
   // Declare the parameters
   this->declare_parameter("classes", "all");

@@ -27,7 +27,7 @@ namespace perception_system
 {
 
 CollisionServer::CollisionServer(const rclcpp::NodeOptions & options)
-: rclcpp_cascade_lifecycle::CascadeLifecycleNode("collision_server_node", options)
+: rclcpp_cascade_lifecycle::CascadeLifecycleNode("collision_server", "perception_system", options)
 {
   // todo: add dependencies
 
