@@ -34,115 +34,42 @@ namespace perception_system
 {
 using namespace std::chrono_literals;
 
-PerceptionListener::PerceptionListener(const rclcpp::NodeOptions & options)
-: CascadeLifecycleNode("perception_listener", "perception_system", options)
+PerceptionListener::PerceptionListener(
+  std::shared_ptr<rclcpp_cascade_lifecycle::CascadeLifecycleNode> parent_node)
+: parent_node_(parent_node)
 {
-  this->declare_parameter("max_time_perception", 0.01);
-  this->declare_parameter("max_time_interest", 0.01);
-  this->declare_parameter("debug", false);
-  this->declare_parameter("tf_frame_camera_", "head_front_camera_link_color_optical_frame");
-  this->declare_parameter("tf_frame_map_", "base_footprint");
-}
+  parent_node_->declare_parameter("max_time_perception", 0.01);
+  parent_node_->declare_parameter("max_time_interest", 0.01);
+  parent_node_->declare_parameter("debug", false);
+  parent_node_->declare_parameter("tf_frame_camera", "head_front_camera_link_color_optical_frame");
+  parent_node_->declare_parameter("tf_frame_map", "base_footprint");
 
-using CallbackReturnT =
-  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
-
-CallbackReturnT
-PerceptionListener::on_configure(const rclcpp_lifecycle::State & state)
-{
-  RCLCPP_INFO(
-    get_logger(), "[%s] Configuring from [%s] state...", get_name(),
-    state.label().c_str());
-
-  this->get_parameter("max_time_perception", max_time_perception_);
-  this->get_parameter("max_time_interest", max_time_interest_);
-  this->get_parameter("tf_frame_camera_", tf_frame_camera_);
-  this->get_parameter("tf_frame_map_", tf_frame_map_);
-  if (this->get_parameter("debug").as_bool()) {
-    this->add_activation("yolov8_debug_node");
+  parent_node_->get_parameter("max_time_perception", max_time_perception_);  
+  parent_node_->get_parameter("max_time_interest", max_time_interest_);
+  parent_node_->get_parameter("tf_frame_camera_", tf_frame_camera_);
+  parent_node_->get_parameter("tf_frame_map_", tf_frame_map_);
+  if (parent_node_->get_parameter("debug").as_bool()) {
+    parent_node_->add_activation("yolov8_debug_node");
   }
 
   last_update_ = rclcpp::Clock(RCL_STEADY_TIME).now();
 
-  tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock(), 120ms); // 30 Hz liveliness so it is always updated
+  tf_buffer_ = std::make_unique<tf2_ros::Buffer>(parent_node_->get_clock(), 120ms); // 30 Hz liveliness so it is always updated
+
   tf_listener_ = std::make_unique<tf2_ros::TransformListener>(*tf_buffer_);
-  tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
-
-  return CallbackReturnT::SUCCESS;
-}
-
-CallbackReturnT
-PerceptionListener::on_activate(const rclcpp_lifecycle::State & state)
-{
-  RCLCPP_INFO(
-    get_logger(), "[%s] Activating from [%s] state...", get_name(),
-    state.label().c_str());
+  tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(parent_node_.get());
 
   std::string topic_name = "all_perceptions";
-  percept_sub_ = this->create_subscription<perception_system_interfaces::msg::DetectionArray>(
+  percept_sub_ = parent_node_->create_subscription<perception_system_interfaces::msg::DetectionArray>(
     topic_name, 10,
     std::bind(&PerceptionListener::perception_callback, this, std::placeholders::_1));
-
-  return CallbackReturnT::SUCCESS;
-}
-
-CallbackReturnT
-PerceptionListener::on_deactivate(const rclcpp_lifecycle::State & state)
-{
-  RCLCPP_INFO(
-    get_logger(), "[%s] Deactivating from [%s] state...", get_name(),
-    state.label().c_str());
-
-  percept_sub_ = nullptr;
-
-  return CallbackReturnT::SUCCESS;
-}
-
-CallbackReturnT
-PerceptionListener::on_cleanup(const rclcpp_lifecycle::State & state)
-{
-  RCLCPP_INFO(
-    get_logger(), "[%s] Cleaning up from [%s] state...", get_name(),
-    state.label().c_str());
-
-  return CallbackReturnT::SUCCESS;
-}
-
-CallbackReturnT
-PerceptionListener::on_shutdown(const rclcpp_lifecycle::State & state)
-{
-  RCLCPP_INFO(
-    get_logger(), "[%s] Shutting down from [%s] state...", get_name(),
-    state.label().c_str());
-
-  return CallbackReturnT::SUCCESS;
-}
-
-CallbackReturnT
-PerceptionListener::on_error(const rclcpp_lifecycle::State & state)
-{
-  RCLCPP_INFO(get_logger(), "[%s] Erroring from [%s] state...", get_name(), state.label().c_str());
-
-  return CallbackReturnT::SUCCESS;
 }
 
 void PerceptionListener::perception_callback(
   perception_system_interfaces::msg::DetectionArray::UniquePtr msg)
 {
-  for (auto & detection : msg->detections) {
-    // If it is in last_perceptions_ update, if not, create a new element in the vector
-    auto det = perceptions_.find(detection.unique_id);
-    if (det != perceptions_.end()) {
-      det->second.msg = detection;
+  last_msg_ = std::move(msg);
 
-      det->second.time = rclcpp::Clock(RCL_STEADY_TIME).now();
-    } else {
-      perceptions_.emplace(
-        std::pair<std::string, PerceptionData>(
-          detection.unique_id,
-          {detection.type, detection, rclcpp::Clock(RCL_STEADY_TIME).now()}));
-    }
-  }
 }
 
 // Check if last_perceptions_ elements are too old, and remove it
@@ -156,6 +83,24 @@ void PerceptionListener::update(double hz)
   if (diff_update.seconds() < seconds) {
     return;
   }
+
+  if (last_msg_ != nullptr) {
+    for (auto & detection : last_msg_->detections) {
+      // If it is in last_perceptions_ update, if not, create a new element in the vector
+      auto det = perceptions_.find(detection.unique_id);
+      if (det != perceptions_.end()) {
+        det->second.msg = detection;
+
+        det->second.time = rclcpp::Clock(RCL_STEADY_TIME).now();
+      } else {
+        perceptions_.emplace(
+          std::pair<std::string, PerceptionData>(
+            detection.unique_id,
+            {detection.type, detection, rclcpp::Clock(RCL_STEADY_TIME).now()}));
+      }
+    }
+  }
+
 
   // Check if last_perceptions_ elements are too old, and remove it
   std::vector<std::string> to_remove_percetions;
@@ -200,11 +145,11 @@ void PerceptionListener::set_interest(const std::string & id, bool status)
           id,
           {status, steady_clock.now()}));
       if (id.find("person") != std::string::npos) {
-        this->add_activation("perception_people_detection");
+        parent_node_->add_activation("perception_people_detection");
       } else {
-        this->add_activation("perception_objects_detection");
+        parent_node_->add_activation("perception_people_detection");
       }
-      RCLCPP_INFO(get_logger(), "Added interest: %s, %d", id.c_str(), status);
+      RCLCPP_INFO(parent_node_->get_logger(), "Added interest: %s, %d", id.c_str(), status);
     } else {
       rclcpp::Clock steady_clock(RCL_STEADY_TIME);
       interests_.find(id)->second.time = steady_clock.now();
@@ -212,11 +157,11 @@ void PerceptionListener::set_interest(const std::string & id, bool status)
   } else {
     interests_.erase(id);
     if (id.find("person") != std::string::npos) {
-      this->remove_activation("perception_people_detection");
+      parent_node_->remove_activation("perception_people_detection");
     } else {
-      this->remove_activation("perception_objects_detection");
+      parent_node_->remove_activation("perception_people_detection");
     }
-    RCLCPP_INFO(get_logger(), "Removed interest: %s, %d", id.c_str(), status);
+    RCLCPP_DEBUG(parent_node_->get_logger(), "Removed interest: %s, %d", id.c_str(), status);
   }
 
 }
@@ -261,7 +206,7 @@ PerceptionListener::publicTF(
       tf2::TimePointZero);
   } catch (const tf2::TransformException & ex) {
     RCLCPP_INFO(
-      this->get_logger(), "Could not transform %s to %s: %s",
+      parent_node_->get_logger(), "Could not transform %s to %s: %s",
       tf_frame_map_.c_str(), tf_frame_camera_.c_str(), ex.what());
     return -1;
   }

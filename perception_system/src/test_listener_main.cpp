@@ -20,9 +20,12 @@ int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
 
-  auto cv_node = perception_system::PerceptionListener::getInstance();
+  auto node = std::make_shared<rclcpp_cascade_lifecycle::CascadeLifecycleNode>(
+    "node_test");
 
-  rclcpp::spin(cv_node->get_node_base_interface());
+  auto pl = perception_system::PerceptionListener::getInstance(node);
+
+  rclcpp::spin(node->get_node_base_interface());
 
   rclcpp::shutdown();
   return 0;
