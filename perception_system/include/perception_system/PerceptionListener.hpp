@@ -45,18 +45,19 @@ struct PerceptionInterest
   rclcpp::Time time;
 };
 
-class PerceptionListener : public rclcpp_cascade_lifecycle::CascadeLifecycleNode
+class PerceptionListener
 {
 public:
-  static std::shared_ptr<PerceptionListener> getInstance()
+  static std::shared_ptr<PerceptionListener> getInstance(
+    std::shared_ptr<rclcpp_cascade_lifecycle::CascadeLifecycleNode> parent_node)
   {
     if (uniqueInstance_ == nullptr) {
-      uniqueInstance_ = std::make_shared<PerceptionListener>();
+      uniqueInstance_ = std::make_shared<PerceptionListener>(parent_node);
     }
     return uniqueInstance_;
   }
 
-  explicit PerceptionListener(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
+  explicit PerceptionListener(std::shared_ptr<rclcpp_cascade_lifecycle::CascadeLifecycleNode> parent_node);
 
   virtual ~PerceptionListener() {}
 
@@ -79,6 +80,7 @@ public:
 
 private:
   static std::shared_ptr<PerceptionListener> uniqueInstance_;
+  std::shared_ptr<rclcpp_cascade_lifecycle::CascadeLifecycleNode> parent_node_;
 
   rclcpp::Subscription<perception_system_interfaces::msg::DetectionArray>::SharedPtr percept_sub_;
   std::map<std::string, PerceptionInterest> interests_;
