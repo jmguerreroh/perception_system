@@ -32,6 +32,7 @@ limitations under the License.
 
 namespace perception_system
 {
+using namespace std::chrono_literals;
 
 PerceptionListener::PerceptionListener(
   std::shared_ptr<rclcpp_cascade_lifecycle::CascadeLifecycleNode> parent_node)
@@ -40,8 +41,8 @@ PerceptionListener::PerceptionListener(
   parent_node_->declare_parameter("max_time_perception", 0.01);
   parent_node_->declare_parameter("max_time_interest", 0.01);
   parent_node_->declare_parameter("debug", false);
-  parent_node_->declare_parameter("tf_frame_camera_", "head_front_camera_link");
-  parent_node_->declare_parameter("tf_frame_map_", "map");
+  parent_node_->declare_parameter("tf_frame_camera", "head_front_camera_link_color_optical_frame");
+  parent_node_->declare_parameter("tf_frame_map", "base_footprint");
 
   parent_node_->get_parameter("max_time_perception", max_time_perception_);  
   parent_node_->get_parameter("max_time_interest", max_time_interest_);
@@ -49,11 +50,30 @@ PerceptionListener::PerceptionListener(
   parent_node_->get_parameter("tf_frame_map_", tf_frame_map_);
   if (parent_node_->get_parameter("debug").as_bool()) {
     parent_node_->add_activation("yolov8_debug_node");
+}
+
+using CallbackReturnT =
+  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
+
+CallbackReturnT
+PerceptionListener::on_configure(const rclcpp_lifecycle::State & state)
+{
+  RCLCPP_INFO(
+    get_logger(), "[%s] Configuring from [%s] state...", get_name(),
+    state.label().c_str());
+
+  this->get_parameter("max_time_perception", max_time_perception_);
+  this->get_parameter("max_time_interest", max_time_interest_);
+  this->get_parameter("tf_frame_camera_", tf_frame_camera_);
+  this->get_parameter("tf_frame_map_", tf_frame_map_);
+  if (this->get_parameter("debug").as_bool()) {
+    this->add_activation("yolov8_debug_node");
   }
 
   last_update_ = rclcpp::Clock(RCL_STEADY_TIME).now();
 
-  tf_buffer_ = std::make_unique<tf2_ros::Buffer>(parent_node_->get_clock());
+  tf_buffer_ = std::make_unique<tf2_ros::Buffer>(parent_node_->get_clock(), 120ms); // 30 Hz liveliness so it is always updated
+
   tf_listener_ = std::make_unique<tf2_ros::TransformListener>(*tf_buffer_);
   tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(parent_node_.get());
 
@@ -75,7 +95,7 @@ void PerceptionListener::perception_callback(
 
       det->second.time = rclcpp::Clock(RCL_STEADY_TIME).now();
     } else {
-      perceptions_.insert(
+      perceptions_.emplace(
         std::pair<std::string, PerceptionData>(
           detection.unique_id,
           {detection.type, detection, rclcpp::Clock(RCL_STEADY_TIME).now()}));
@@ -138,9 +158,9 @@ void PerceptionListener::set_interest(const std::string & id, bool status)
           id,
           {status, steady_clock.now()}));
       if (id.find("person") != std::string::npos) {
-        parent_node_->add_activation("perception_people_detection_node");
+        parent_node_->add_activation("perception_people_detection");
       } else {
-        parent_node_->add_activation("perception_objects_detection_node");
+        parent_node_->add_activation("perception_people_detection");
       }
       RCLCPP_INFO(parent_node_->get_logger(), "Added interest: %s, %d", id.c_str(), status);
     } else {
@@ -150,9 +170,9 @@ void PerceptionListener::set_interest(const std::string & id, bool status)
   } else {
     interests_.erase(id);
     if (id.find("person") != std::string::npos) {
-      parent_node_->remove_activation("perception_people_detection_node");
+      parent_node_->remove_activation("perception_people_detection");
     } else {
-      parent_node_->remove_activation("perception_objects_detection_node");
+      parent_node_->remove_activation("perception_people_detection");
     }
     RCLCPP_DEBUG(parent_node_->get_logger(), "Removed interest: %s, %d", id.c_str(), status);
   }
@@ -187,9 +207,10 @@ PerceptionListener::get_by_type(const std::string & type)
 }
 
 // Create a transform from map to object and send it
-int 
+int
 PerceptionListener::publicTF(
-  const perception_system_interfaces::msg::Detection & detected_object)
+  const perception_system_interfaces::msg::Detection & detected_object,
+  const std::string & custom_suffix)
 {
   geometry_msgs::msg::TransformStamped map2camera_msg;
   try {
@@ -215,12 +236,14 @@ PerceptionListener::publicTF(
   tf2::fromMsg(map2camera_msg.transform, map2camera);
 
   tf2::Transform map2object = map2camera * camera2object;
-  
+
   // create a transform message from tf2::Transform
   geometry_msgs::msg::TransformStamped map2object_msg;
   map2object_msg.header.stamp = detected_object.header.stamp;
   map2object_msg.header.frame_id = tf_frame_map_;
-  map2object_msg.child_frame_id = detected_object.unique_id;
+  map2object_msg.child_frame_id =
+    (custom_suffix.empty()) ? detected_object.unique_id : (detected_object.class_name + "_" +
+    custom_suffix);
   map2object_msg.transform = tf2::toMsg(map2object);
 
   tf_broadcaster_->sendTransform(map2object_msg);
@@ -235,6 +258,24 @@ void PerceptionListener::publicTFinterest()
       auto detections = get_by_type(interest.first);
       for (auto & detection : detections) {
         publicTF(detection);
+      }
+    }
+  }
+}
+
+void PerceptionListener::publicSortedTFinterest(
+  std::function<bool(
+    const perception_system_interfaces::msg::Detection &,
+    const perception_system_interfaces::msg::Detection &)> comp)
+{
+  for (auto & interest : interests_) {
+    if (interest.second.status) {
+      auto detections = get_by_type(interest.first);
+      std::sort(detections.begin(), detections.end(), comp);
+      int entity_counter = 0;
+      for (auto & detection : detections) {
+        publicTF(detection, std::to_string(entity_counter));
+        entity_counter++;
       }
     }
   }

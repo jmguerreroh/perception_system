@@ -20,7 +20,7 @@ namespace perception_system
 {
 
 PeopleDetectionNode::PeopleDetectionNode(const rclcpp::NodeOptions & options)
-: rclcpp_cascade_lifecycle::CascadeLifecycleNode("perception_people_detection_node", options)
+: rclcpp_cascade_lifecycle::CascadeLifecycleNode("perception_people_detection", "perception_system", options)
 {
   // Create parameters
   this->declare_parameter("target_frame", "head_front_camera_link");
@@ -38,8 +38,7 @@ CallbackReturnT PeopleDetectionNode::on_configure(const rclcpp_lifecycle::State 
     state.label().c_str());
 
   this->get_parameter("target_frame", frame_id_);
-  if (this->get_parameter("debug").as_bool())
-  {
+  if (this->get_parameter("debug").as_bool()) {
     this->add_activation("yolov8_debug_node");
   }
 
