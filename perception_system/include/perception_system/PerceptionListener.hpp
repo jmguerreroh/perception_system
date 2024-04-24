@@ -75,16 +75,6 @@ public:
       return a.center3d.position.z < b.center3d.position.z;
     });
 
-  using CallbackReturnT =
-    rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
-
-  CallbackReturnT on_configure(const rclcpp_lifecycle::State & state);
-  CallbackReturnT on_activate(const rclcpp_lifecycle::State & state);
-  CallbackReturnT on_deactivate(const rclcpp_lifecycle::State & state);
-  CallbackReturnT on_cleanup(const rclcpp_lifecycle::State & state);
-  CallbackReturnT on_shutdown(const rclcpp_lifecycle::State & state);
-  CallbackReturnT on_error(const rclcpp_lifecycle::State & state);
-
 private:
   static std::shared_ptr<PerceptionListener> uniqueInstance_;
   std::shared_ptr<rclcpp_cascade_lifecycle::CascadeLifecycleNode> parent_node_;
@@ -96,6 +86,8 @@ private:
   std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
   std::unique_ptr<tf2_ros::TransformListener> tf_listener_;
   std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
+
+  perception_system_interfaces::msg::DetectionArray::UniquePtr last_msg_;
 
   void perception_callback(perception_system_interfaces::msg::DetectionArray::UniquePtr msg);
   int publicTF(

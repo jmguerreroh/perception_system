@@ -50,24 +50,6 @@ PerceptionListener::PerceptionListener(
   parent_node_->get_parameter("tf_frame_map_", tf_frame_map_);
   if (parent_node_->get_parameter("debug").as_bool()) {
     parent_node_->add_activation("yolov8_debug_node");
-}
-
-using CallbackReturnT =
-  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
-
-CallbackReturnT
-PerceptionListener::on_configure(const rclcpp_lifecycle::State & state)
-{
-  RCLCPP_INFO(
-    get_logger(), "[%s] Configuring from [%s] state...", get_name(),
-    state.label().c_str());
-
-  this->get_parameter("max_time_perception", max_time_perception_);
-  this->get_parameter("max_time_interest", max_time_interest_);
-  this->get_parameter("tf_frame_camera_", tf_frame_camera_);
-  this->get_parameter("tf_frame_map_", tf_frame_map_);
-  if (this->get_parameter("debug").as_bool()) {
-    this->add_activation("yolov8_debug_node");
   }
 
   last_update_ = rclcpp::Clock(RCL_STEADY_TIME).now();
@@ -81,26 +63,13 @@ PerceptionListener::on_configure(const rclcpp_lifecycle::State & state)
   percept_sub_ = parent_node_->create_subscription<perception_system_interfaces::msg::DetectionArray>(
     topic_name, 10,
     std::bind(&PerceptionListener::perception_callback, this, std::placeholders::_1));
-
 }
 
 void PerceptionListener::perception_callback(
   perception_system_interfaces::msg::DetectionArray::UniquePtr msg)
 {
-  for (auto & detection : msg->detections) {
-    // If it is in last_perceptions_ update, if not, create a new element in the vector
-    auto det = perceptions_.find(detection.unique_id);
-    if (det != perceptions_.end()) {
-      det->second.msg = detection;
+  last_msg_ = std::move(msg);
 
-      det->second.time = rclcpp::Clock(RCL_STEADY_TIME).now();
-    } else {
-      perceptions_.emplace(
-        std::pair<std::string, PerceptionData>(
-          detection.unique_id,
-          {detection.type, detection, rclcpp::Clock(RCL_STEADY_TIME).now()}));
-    }
-  }
 }
 
 // Check if last_perceptions_ elements are too old, and remove it
@@ -114,6 +83,24 @@ void PerceptionListener::update(double hz)
   if (diff_update.seconds() < seconds) {
     return;
   }
+
+  if (last_msg_ != nullptr) {
+    for (auto & detection : last_msg_->detections) {
+      // If it is in last_perceptions_ update, if not, create a new element in the vector
+      auto det = perceptions_.find(detection.unique_id);
+      if (det != perceptions_.end()) {
+        det->second.msg = detection;
+
+        det->second.time = rclcpp::Clock(RCL_STEADY_TIME).now();
+      } else {
+        perceptions_.emplace(
+          std::pair<std::string, PerceptionData>(
+            detection.unique_id,
+            {detection.type, detection, rclcpp::Clock(RCL_STEADY_TIME).now()}));
+      }
+    }
+  }
+
 
   // Check if last_perceptions_ elements are too old, and remove it
   std::vector<std::string> to_remove_percetions;
