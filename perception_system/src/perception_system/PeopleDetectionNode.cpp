@@ -20,7 +20,7 @@ namespace perception_system
 {
 
 PeopleDetectionNode::PeopleDetectionNode(const rclcpp::NodeOptions & options)
-: rclcpp_cascade_lifecycle::CascadeLifecycleNode("perception_people_detection", options)
+: rclcpp_cascade_lifecycle::CascadeLifecycleNode("perception_people_detection", "perception_system", options)
 {
   // Create parameters
   this->declare_parameter("target_frame", "head_front_camera_link");
