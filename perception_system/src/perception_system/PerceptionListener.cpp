@@ -200,9 +200,6 @@ PerceptionListener::publicTF(
   const std::string & custom_suffix)
 {
   geometry_msgs::msg::TransformStamped map2camera_msg;
-  RCLCPP_INFO(
-    parent_node_->get_logger(), "Looking for transform from %s to %s",
-    tf_frame_map_.c_str(), tf_frame_camera_.c_str());
   try {
     map2camera_msg = tf_buffer_->lookupTransform(
       tf_frame_map_, tf_frame_camera_,
@@ -235,12 +232,7 @@ PerceptionListener::publicTF(
     (custom_suffix.empty()) ? detected_object.unique_id : (detected_object.class_name + "_" +
     custom_suffix);
   map2object_msg.transform = tf2::toMsg(map2object);
-
-   RCLCPP_INFO(
-    parent_node_->get_logger(), "Sending transform from %s to %s",
-    map2object_msg.header.frame_id.c_str(),
-    map2object_msg.child_frame_id.c_str());
-
+  
   tf_broadcaster_->sendTransform(map2object_msg);
   return 0;
 }
