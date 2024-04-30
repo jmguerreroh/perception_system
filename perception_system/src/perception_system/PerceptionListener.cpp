@@ -46,8 +46,8 @@ PerceptionListener::PerceptionListener(
 
   parent_node_->get_parameter("max_time_perception", max_time_perception_);  
   parent_node_->get_parameter("max_time_interest", max_time_interest_);
-  parent_node_->get_parameter("tf_frame_camera_", tf_frame_camera_);
-  parent_node_->get_parameter("tf_frame_map_", tf_frame_map_);
+  parent_node_->get_parameter("tf_frame_camera", tf_frame_camera_);
+  parent_node_->get_parameter("tf_frame_map", tf_frame_map_);
   if (parent_node_->get_parameter("debug").as_bool()) {
     parent_node_->add_activation("yolov8_debug_node");
   }
