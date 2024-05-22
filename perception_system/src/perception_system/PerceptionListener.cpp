@@ -147,7 +147,7 @@ void PerceptionListener::set_interest(const std::string & id, bool status)
       if (id.find("person") != std::string::npos) {
         parent_node_->add_activation("perception_people_detection");
       } else {
-        parent_node_->add_activation("perception_people_detection");
+        parent_node_->add_activation("perception_objects_detection");
       }
       RCLCPP_INFO(parent_node_->get_logger(), "Added interest: %s, %d", id.c_str(), status);
     } else {
@@ -159,7 +159,7 @@ void PerceptionListener::set_interest(const std::string & id, bool status)
     if (id.find("person") != std::string::npos) {
       parent_node_->remove_activation("perception_people_detection");
     } else {
-      parent_node_->remove_activation("perception_people_detection");
+      parent_node_->remove_activation("perception_objects_detection");
     }
     RCLCPP_DEBUG(parent_node_->get_logger(), "Removed interest: %s, %d", id.c_str(), status);
   }
