@@ -66,6 +66,10 @@ public:
   void set_interest(const std::string & type, bool status = true);
   std::vector<perception_system_interfaces::msg::Detection> get_by_id(const std::string & id);
   std::vector<perception_system_interfaces::msg::Detection> get_by_type(const std::string & type);
+  // directly publish the TF
+  int publicTF(
+    const perception_system_interfaces::msg::Detection & detected_object,
+    const std::string & custom_suffix = "");
   void publicTFinterest();
   // public tfs with custom sorting
   void publicSortedTFinterest(
@@ -90,9 +94,6 @@ private:
   perception_system_interfaces::msg::DetectionArray::UniquePtr last_msg_;
 
   void perception_callback(perception_system_interfaces::msg::DetectionArray::UniquePtr msg);
-  int publicTF(
-    const perception_system_interfaces::msg::Detection & detected_object,
-    const std::string & custom_suffix = "");
 
 
   double max_time_perception_;

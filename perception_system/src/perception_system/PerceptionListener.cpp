@@ -232,7 +232,7 @@ PerceptionListener::publicTF(
     (custom_suffix.empty()) ? detected_object.unique_id : (detected_object.class_name + "_" +
     custom_suffix);
   map2object_msg.transform = tf2::toMsg(map2object);
-
+  
   tf_broadcaster_->sendTransform(map2object_msg);
   return 0;
 }
