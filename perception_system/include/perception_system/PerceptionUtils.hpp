@@ -52,6 +52,61 @@ inline double distance3D(double x1, double y1, double z1, double x2, double y2, 
   return std::sqrt(std::pow(x2 - x1, 2) + std::pow(y2 - y1, 2) + std::pow(z2 - z1, 2));
 }
 
+inline int findMode(const cv::Mat& hist) {
+    double maxVal = 0;
+    int maxIdx = 0;
+    for (int i = 0; i < hist.rows; i++) {
+        if (hist.at<float>(i) > maxVal) {
+            maxVal = hist.at<float>(i);
+            maxIdx = i;
+        }
+    }
+    return maxIdx;
+}
+
+inline cv::Scalar findMostCommonHSVColor(const cv::Mat& hsv_image) {
+    // Split the image into H, S, V channels
+    std::vector<cv::Mat> hsv_channels;
+    cv::split(hsv_image, hsv_channels);
+
+    // Set histogram parameters
+    int h_bins = 180; // Hue values range from 0 to 179 in OpenCV
+    int s_bins = 256; // Saturation values range from 0 to 255
+    int v_bins = 256; // Value values range from 0 to 255
+
+    float h_range[] = { 0, 180 };
+    float s_range[] = { 0, 256 };
+    float v_range[] = { 0, 256 };
+
+    const float* h_histRange = { h_range };
+    const float* s_histRange = { s_range };
+    const float* v_histRange = { v_range };
+
+    cv::Mat h_hist, s_hist, v_hist;
+
+    // Compute the histograms for H, S, V channels
+    cv::calcHist(&hsv_channels[0], 1, 0, cv::Mat(), h_hist, 1, &h_bins, &h_histRange);
+    cv::calcHist(&hsv_channels[1], 1, 0, cv::Mat(), s_hist, 1, &s_bins, &s_histRange);
+    cv::calcHist(&hsv_channels[2], 1, 0, cv::Mat(), v_hist, 1, &v_bins, &v_histRange);
+
+    // Find the most common values (modes) in each histogram
+    int h_mode = findMode(h_hist);
+    int s_mode = findMode(s_hist);
+    int v_mode = findMode(v_hist);
+
+    return cv::Scalar(h_mode, s_mode, v_mode);
+}
+
+inline std::vector<cv::Scalar> calculateMedianHalves(const cv::Mat & roi)
+{
+  cv::Mat hsv;
+  cv::cvtColor(roi, hsv, cv::COLOR_BGR2HSV);
+  cv::Scalar up_avg = findMostCommonHSVColor(hsv(cv::Rect(0, 0, hsv.cols, hsv.rows / 2)));
+  cv::Scalar down_avg = findMostCommonHSVColor(hsv(cv::Rect(0, hsv.rows / 2, hsv.cols, hsv.rows / 2)));
+  
+  return {up_avg, down_avg};
+}
+
 inline std::vector<cv::Scalar> calculateAverageHalves(const cv::Mat & roi)
 {
   cv::Mat hsv;
@@ -167,7 +222,7 @@ inline int64_t getUniqueIDFromDetection(
   cv::Mat roi = image(cv::Rect(min_pt, max_pt));
 
   // Calculate the average color of the upper and lower halves
-  std::vector<cv::Scalar> avg = calculateAverageHalves(roi);
+  std::vector<cv::Scalar> avg = calculateMedianHalves(roi);
 
   // Generate the unique ID
   return generateUniqueIDFromHSVPair(avg[0], avg[1]);

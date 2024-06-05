@@ -172,7 +172,7 @@ void PeopleDetectionNode::callback(
       perception.pointing_direction = pointing(detection.keypoints);
 
       // Calculate the average color values (HSV) for each half
-      std::vector<cv::Scalar> avg = calculateAverageHalves(roi);
+      std::vector<cv::Scalar> avg = calculateMedianHalves(roi);
 
       // Generate a unique identifier from the average color values
       int64_t uniqueID = generateUniqueIDFromHSVPair(avg[0], avg[1]);
