@@ -19,6 +19,7 @@
 #include <iostream>
 #include <algorithm>
 #include <variant>
+#include <vector>
 
 #include "pcl/point_types.h"
 #include "pcl_conversions/pcl_conversions.h"
@@ -52,16 +53,27 @@ inline double distance3D(double x1, double y1, double z1, double x2, double y2, 
   return std::sqrt(std::pow(x2 - x1, 2) + std::pow(y2 - y1, 2) + std::pow(z2 - z1, 2));
 }
 
-inline int findMode(const cv::Mat& hist) {
-    double maxVal = 0;
-    int maxIdx = 0;
-    for (int i = 0; i < hist.rows; i++) {
-        if (hist.at<float>(i) > maxVal) {
-            maxVal = hist.at<float>(i);
-            maxIdx = i;
+inline double calculateMedian(const cv::Mat& channel) {
+    // Flatten the channel matrix into a single vector
+    std::vector<uchar> vecFromMat;
+    if (channel.isContinuous()) {
+        vecFromMat.assign(channel.datastart, channel.dataend);
+    } else {
+        for (int i = 0; i < channel.rows; ++i) {
+            vecFromMat.insert(vecFromMat.end(), channel.ptr<uchar>(i), channel.ptr<uchar>(i) + channel.cols);
         }
     }
-    return maxIdx;
+
+    // Sort the vector to find the median
+    nth_element(vecFromMat.begin(), vecFromMat.begin() + vecFromMat.size() / 2, vecFromMat.end());
+    double median;
+    if (vecFromMat.size() % 2 == 0) {
+        median = (vecFromMat[vecFromMat.size() / 2 - 1] + vecFromMat[vecFromMat.size() / 2]) / 2.0;
+    } else {
+        median = vecFromMat[vecFromMat.size() / 2];
+    }
+
+    return median;
 }
 
 inline cv::Scalar findMostCommonHSVColor(const cv::Mat& hsv_image) {
@@ -69,32 +81,33 @@ inline cv::Scalar findMostCommonHSVColor(const cv::Mat& hsv_image) {
     std::vector<cv::Mat> hsv_channels;
     cv::split(hsv_image, hsv_channels);
 
-    // Set histogram parameters
-    int h_bins = 180; // Hue values range from 0 to 179 in OpenCV
-    int s_bins = 256; // Saturation values range from 0 to 255
-    int v_bins = 256; // Value values range from 0 to 255
+    int h_resolution = 2;
 
-    float h_range[] = { 0, 180 };
-    float s_range[] = { 0, 256 };
-    float v_range[] = { 0, 256 };
+    cv::Mat h_channel = hsv_channels[0] / h_resolution;
 
-    const float* h_histRange = { h_range };
-    const float* s_histRange = { s_range };
-    const float* v_histRange = { v_range };
+    // Calculate the median of the H channel
+    double h_mode = (calculateMedian(h_channel) + 0.5) * h_resolution;
 
-    cv::Mat h_hist, s_hist, v_hist;
+    cv::InputArray lowerColor = cv::Scalar(h_mode - 5, 0, 0);
+    cv::InputArray upperColor = cv::Scalar(h_mode + 5, 255, 255);
 
-    // Compute the histograms for H, S, V channels
-    cv::calcHist(&hsv_channels[0], 1, 0, cv::Mat(), h_hist, 1, &h_bins, &h_histRange);
-    cv::calcHist(&hsv_channels[1], 1, 0, cv::Mat(), s_hist, 1, &s_bins, &s_histRange);
-    cv::calcHist(&hsv_channels[2], 1, 0, cv::Mat(), v_hist, 1, &v_bins, &v_histRange);
+    cv::Mat mask;
+    cv::inRange(hsv_image, lowerColor, upperColor, mask);
+    auto masked_img = hsv_image.clone();
+    cv::bitwise_and(hsv_image, hsv_image, masked_img, mask);
 
-    // Find the most common values (modes) in each histogram
-    int h_mode = findMode(h_hist);
-    int s_mode = findMode(s_hist);
-    int v_mode = findMode(v_hist);
+    std::vector<cv::Mat> proccessed_channels;
+    cv::split(masked_img, proccessed_channels);
 
-    return cv::Scalar(h_mode, s_mode, v_mode);
+    cv::Mat s_channel = proccessed_channels[1];
+    cv::Mat v_channel = proccessed_channels[2];
+
+    cv::Scalar s_avg = cv::mean(s_channel, mask);
+    double s_value = s_avg[0];
+    cv::Scalar v_avg = cv::mean(v_channel, mask);
+    double v_value = v_avg[0];
+
+    return cv::Scalar(h_mode, s_value, v_value);
 }
 
 inline std::vector<cv::Scalar> calculateMedianHalves(const cv::Mat & roi)
@@ -134,11 +147,11 @@ inline std::vector<cv::Scalar> getHSVFromUniqueID(int64_t uniqueID)
 
   // Convert the components to the HSV color space
   double h01_1 = static_cast<float>(parte1) / 100 * 180;
-  double s01_1 = static_cast<float>(parte2) / 100 * 255;
-  double v01_1 = static_cast<float>(parte3) / 100 * 255;
+  double s01_1 = static_cast<float>(parte2) / 100 * 256;
+  double v01_1 = static_cast<float>(parte3) / 100 * 256;
   double h01_2 = static_cast<float>(parte4) / 100 * 180;
-  double s01_2 = static_cast<float>(parte5) / 100 * 255;
-  double v01_2 = static_cast<float>(parte6) / 100 * 255;
+  double s01_2 = static_cast<float>(parte5) / 100 * 256;
+  double v01_2 = static_cast<float>(parte6) / 100 * 256;
 
   // Assign the HSV colors to the output vector
   hsvColors[0] = cv::Scalar(h01_1, s01_1, v01_1);
@@ -151,11 +164,11 @@ inline int64_t generateUniqueIDFromHSVPair(const cv::Scalar & hsv1, const cv::Sc
 {
   // Convert the HSV values to integers
   int64_t h01_1 = static_cast<int>(hsv1[0] / 180.0 * 100);        // Two decimal digits
-  int64_t s01_1 = static_cast<int>(hsv1[1] / 255.0 * 100);
-  int64_t v01_1 = static_cast<int>(hsv1[2] / 255.0 * 100);
+  int64_t s01_1 = static_cast<int>(hsv1[1] / 256.0 * 100);
+  int64_t v01_1 = static_cast<int>(hsv1[2] / 256.0 * 100);
   int64_t h01_2 = static_cast<int>(hsv2[0] / 180.0 * 100);
-  int64_t s01_2 = static_cast<int>(hsv2[1] / 255.0 * 100);
-  int64_t v01_2 = static_cast<int>(hsv2[2] / 255.0 * 100);
+  int64_t s01_2 = static_cast<int>(hsv2[1] / 256.0 * 100);
+  int64_t v01_2 = static_cast<int>(hsv2[2] / 256.0 * 100);
 
   // Create a unique ID by combining the components of both colors
   int64_t resultado = h01_1 * static_cast<int64_t>(std::pow(10, 10)) +
