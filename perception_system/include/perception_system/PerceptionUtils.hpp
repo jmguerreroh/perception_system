@@ -76,17 +76,16 @@ inline double calculateMedian(const cv::Mat& channel) {
     return median;
 }
 
-inline cv::Scalar findMostCommonHSVColor(const cv::Mat& hsv_image) {
+inline cv::Scalar findMostCommonHSVColor(const cv::Mat& hsv_image)
+{
     // Split the image into H, S, V channels
     std::vector<cv::Mat> hsv_channels;
     cv::split(hsv_image, hsv_channels);
 
-    int h_resolution = 2;
-
-    cv::Mat h_channel = hsv_channels[0] / h_resolution;
+    cv::Mat h_channel = hsv_channels[0];
 
     // Calculate the median of the H channel
-    double h_mode = (calculateMedian(h_channel) + 0.5) * h_resolution;
+    double h_mode = calculateMedian(h_channel);
 
     cv::InputArray lowerColor = cv::Scalar(h_mode - 5, 0, 0);
     cv::InputArray upperColor = cv::Scalar(h_mode + 5, 255, 255);
