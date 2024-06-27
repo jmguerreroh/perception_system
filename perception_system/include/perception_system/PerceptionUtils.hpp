@@ -101,9 +101,9 @@ inline cv::Scalar findMostCommonHSVColor(const cv::Mat& hsv_image)
     cv::Mat s_channel = proccessed_channels[1];
     cv::Mat v_channel = proccessed_channels[2];
 
-    cv::Scalar s_avg = cv::mean(s_channel, mask);
+    cv::Scalar s_avg = cv::mean(s_channel);
     double s_value = s_avg[0];
-    cv::Scalar v_avg = cv::mean(v_channel, mask);
+    cv::Scalar v_avg = cv::mean(v_channel);
     double v_value = v_avg[0];
 
     return cv::Scalar(h_mode, s_value, v_value);
@@ -294,6 +294,97 @@ inline int points_direction(double x1, double y1, double x2, double y2)
 
   // 0 is right, 1 is down-right, 2 is down, 3 is down-left, 4 is left, 5 is up-left, 6 is up, 7 is up-right
   return num;
+}
+
+inline int body_pose(yolov8_msgs::msg::KeyPoint3DArray skeleton)
+{
+  geometry_msgs::msg::Point left_shoulder, left_hip, left_knee;
+  geometry_msgs::msg::Point right_shoulder, right_hip, right_knee;
+
+  bool left_shoulder_found = false;
+  bool left_hip_found = false;
+  bool left_knee_found = false;
+  bool right_shoulder_found = false;
+  bool right_hip_found = false;
+  bool right_knee_found = false;
+
+  for (auto keypoint : skeleton.data) {
+    switch (keypoint.id) {
+      case 5:
+        left_shoulder = keypoint.point;
+        left_shoulder_found = true;
+        break;
+      case 11:
+        left_hip = keypoint.point;
+        left_hip_found = true;
+        break;
+      case 13:
+        left_knee = keypoint.point;
+        left_knee_found = true;
+        break;
+      case 6:
+        right_shoulder = keypoint.point;
+        right_shoulder_found = true;
+        break;
+      case 12:
+        right_hip = keypoint.point;
+        right_hip_found = true;
+        break;
+      case 14:
+        right_knee = keypoint.point;
+        right_knee_found = true;
+        break;
+
+      default:
+        break;
+    }
+  }
+
+  bool left_leg = (left_hip_found && left_knee_found);
+  bool right_leg = (right_hip_found && right_knee_found);
+  bool left_body = (left_shoulder_found && left_hip_found);
+  bool right_body = (right_shoulder_found && right_hip_found);
+
+  left_body = false;
+  left_leg = false;
+
+  double leg_position = -1;
+  double body_position = -1;
+
+  if (left_leg) {
+    auto distance = sqrt(pow(left_hip.x - left_knee.x, 2) + pow(left_hip.y - left_knee.y, 2) + pow(left_hip.z - left_knee.z, 2));
+    leg_position = (left_hip.y - left_knee.y) / distance;
+  } else if (right_leg) {
+    auto distance = sqrt(pow(right_hip.x - right_knee.x, 2) + pow(right_hip.y - right_knee.y, 2) + pow(right_hip.z - right_knee.z, 2));
+    leg_position = (right_hip.y - right_knee.y) / distance;
+  } else {
+    return -1;
+  }
+
+  if (left_body) {
+    auto distance = sqrt(pow(left_shoulder.x - left_hip.x, 2) + pow(left_shoulder.y - left_hip.y, 2) + pow(left_shoulder.z - left_hip.z, 2));
+    body_position = (left_shoulder.y - left_hip.y) / distance;
+  } else if (right_body) {
+    auto distance = sqrt(pow(right_shoulder.x - right_hip.x, 2) + pow(right_shoulder.y - right_hip.y, 2) + pow(right_shoulder.z - right_hip.z, 2));
+    body_position = (right_shoulder.y - right_hip.y) / distance;
+  } else {
+    return -1;
+  }
+
+  leg_position = abs(leg_position);
+  body_position = abs(body_position);
+
+  std::cout << leg_position << " " << body_position << std::endl;
+
+  // 0 is lying, 1 is sitting, 2 is standing
+  if (leg_position < 0.7 && body_position < 0.7) {
+    return 2;
+  } else if (leg_position > 0.7 && body_position < 0.7) {
+    return 1;
+  } else {
+    return 0;
+  }
+
 }
 
 inline int pointing(yolov8_msgs::msg::KeyPoint2DArray skeleton)

@@ -170,6 +170,7 @@ void PeopleDetectionNode::callback(
       perception.skeleton2d = detection.keypoints.data;
       perception.skeleton3d = detection.keypoints3d.data;
       perception.pointing_direction = pointing(detection.keypoints);
+      perception.body_pose = body_pose(detection.keypoints3d);
 
       // Calculate the average color values (HSV) for each half
       std::vector<cv::Scalar> avg = calculateMedianHalves(roi);
