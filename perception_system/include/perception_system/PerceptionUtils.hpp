@@ -345,28 +345,25 @@ inline int body_pose(yolov8_msgs::msg::KeyPoint3DArray skeleton)
   bool left_body = (left_shoulder_found && left_hip_found);
   bool right_body = (right_shoulder_found && right_hip_found);
 
-  left_body = false;
-  left_leg = false;
-
   double leg_position = -1;
   double body_position = -1;
 
-  if (left_leg) {
-    auto distance = sqrt(pow(left_hip.x - left_knee.x, 2) + pow(left_hip.y - left_knee.y, 2) + pow(left_hip.z - left_knee.z, 2));
-    leg_position = (left_hip.y - left_knee.y) / distance;
-  } else if (right_leg) {
+  if (right_leg) {
     auto distance = sqrt(pow(right_hip.x - right_knee.x, 2) + pow(right_hip.y - right_knee.y, 2) + pow(right_hip.z - right_knee.z, 2));
     leg_position = (right_hip.y - right_knee.y) / distance;
+  } else if (left_leg) {
+    auto distance = sqrt(pow(left_hip.x - left_knee.x, 2) + pow(left_hip.y - left_knee.y, 2) + pow(left_hip.z - left_knee.z, 2));
+    leg_position = (left_hip.y - left_knee.y) / distance;
   } else {
     return -1;
   }
-
-  if (left_body) {
-    auto distance = sqrt(pow(left_shoulder.x - left_hip.x, 2) + pow(left_shoulder.y - left_hip.y, 2) + pow(left_shoulder.z - left_hip.z, 2));
-    body_position = (left_shoulder.y - left_hip.y) / distance;
-  } else if (right_body) {
+  
+  if (right_body) {
     auto distance = sqrt(pow(right_shoulder.x - right_hip.x, 2) + pow(right_shoulder.y - right_hip.y, 2) + pow(right_shoulder.z - right_hip.z, 2));
     body_position = (right_shoulder.y - right_hip.y) / distance;
+  } else if (left_body) {
+    auto distance = sqrt(pow(left_shoulder.x - left_hip.x, 2) + pow(left_shoulder.y - left_hip.y, 2) + pow(left_shoulder.z - left_hip.z, 2));
+    body_position = (left_shoulder.y - left_hip.y) / distance;
   } else {
     return -1;
   }
@@ -374,12 +371,10 @@ inline int body_pose(yolov8_msgs::msg::KeyPoint3DArray skeleton)
   leg_position = abs(leg_position);
   body_position = abs(body_position);
 
-  std::cout << leg_position << " " << body_position << std::endl;
-
   // 0 is lying, 1 is sitting, 2 is standing
-  if (leg_position < 0.7 && body_position < 0.7) {
+  if (leg_position < 0.20 && body_position < 0.4) {
     return 2;
-  } else if (leg_position > 0.7 && body_position < 0.7) {
+  } else if (leg_position > 0.20 && body_position < 0.4) {
     return 1;
   } else {
     return 0;
