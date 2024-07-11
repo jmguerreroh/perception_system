@@ -491,7 +491,7 @@ void CollisionServer::isolate_pc_classes_service_callback(
   }
   response->filtered_pc = detection_cloud_msg;
   response->success = true;
-  point_cloud_pub_->publish(detection_cloud_msg);
+  //point_cloud_pub_->publish(detection_cloud_msg);
 }
 
 void CollisionServer::isolate_pc_background_service_callback(
