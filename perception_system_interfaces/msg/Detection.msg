@@ -16,8 +16,8 @@ geometry_msgs/Vector3 bbox3d
 
 # person
 int64 color_person
-yolov8_msgs/KeyPoint2D[] skeleton2d
-yolov8_msgs/KeyPoint3D[] skeleton3d
+yolo_msgs/KeyPoint2D[] skeleton2d
+yolo_msgs/KeyPoint3D[] skeleton3d
 int8 pointing_direction
 int8 body_pose
 

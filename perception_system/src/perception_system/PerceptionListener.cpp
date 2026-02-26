@@ -41,7 +41,7 @@ PerceptionListener::PerceptionListener(
   parent_node_->declare_parameter("max_time_perception", 0.01);
   parent_node_->declare_parameter("max_time_interest", 0.01);
   parent_node_->declare_parameter("debug", false);
-  parent_node_->declare_parameter("tf_frame_camera", "head_front_camera_link_color_optical_frame");
+  parent_node_->declare_parameter("tf_frame_camera", "head_front_camera_color_optical_frame");
   parent_node_->declare_parameter("tf_frame_map", "base_footprint");
 
   parent_node_->get_parameter("max_time_perception", max_time_perception_);  
@@ -49,7 +49,7 @@ PerceptionListener::PerceptionListener(
   parent_node_->get_parameter("tf_frame_camera", tf_frame_camera_);
   parent_node_->get_parameter("tf_frame_map", tf_frame_map_);
   if (parent_node_->get_parameter("debug").as_bool()) {
-    parent_node_->add_activation("yolov8_debug_node");
+    parent_node_->add_activation("yolo_debug_node");
   }
 
   last_update_ = rclcpp::Clock(RCL_STEADY_TIME).now();
@@ -226,7 +226,7 @@ PerceptionListener::publicTF(
 
   // create a transform message from tf2::Transform
   geometry_msgs::msg::TransformStamped map2object_msg;
-  map2object_msg.header.stamp = detected_object.header.stamp;
+  map2object_msg.header.stamp = parent_node_->get_clock()->now();
   map2object_msg.header.frame_id = tf_frame_map_;
   map2object_msg.child_frame_id =
     (custom_suffix.empty()) ? detected_object.unique_id : (detected_object.class_name + "_" +

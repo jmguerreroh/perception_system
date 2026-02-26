@@ -10,7 +10,7 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
-find_package(yolov8_msgs REQUIRED)
+find_package(yolo_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(lifecycle_msgs REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
@@ -39,7 +39,7 @@ set(dependencies
   ament_cmake
   rclcpp
   rclcpp_components
-  yolov8_msgs
+  yolo_msgs
   visualization_msgs
   lifecycle_msgs
   rclcpp_lifecycle

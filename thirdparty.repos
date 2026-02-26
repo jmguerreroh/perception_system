@@ -1,8 +1,8 @@
 
 repositories:
-  yolov8_ros:
+  yolo_ros:
     type: git
-    url: https://github.com/jmguerreroh/yolov8_ros.git
+    url: https://github.com/igonzf/yolo_ros.git
     version: main
   rclcpp_cascade_lifecycle:
     type: git

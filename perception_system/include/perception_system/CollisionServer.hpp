@@ -28,7 +28,7 @@ limitations under the License.
 #include "perception_system_interfaces/srv/remove_depth_classes.hpp"
 #include "perception_system_interfaces/srv/isolate_depth_classes.hpp"
 
-#include "yolov8_msgs/msg/detection_array.hpp"
+#include "yolo_msgs/msg/detection_array.hpp"
 
 #include "lifecycle_msgs/msg/state.hpp"
 #include "rclcpp_cascade_lifecycle/rclcpp_cascade_lifecycle.hpp"
@@ -50,7 +50,7 @@ using CallbackReturn =
 
 using ApproximateSyncPolicy = message_filters::sync_policies::ApproximateTime<sensor_msgs::msg::PointCloud2,
     sensor_msgs::msg::Image,
-    yolov8_msgs::msg::DetectionArray>;
+    yolo_msgs::msg::DetectionArray>;
 
 class CollisionServer : public rclcpp_cascade_lifecycle::CascadeLifecycleNode
 {
@@ -71,7 +71,7 @@ private:
   void sync_cb(
     const sensor_msgs::msg::PointCloud2::ConstSharedPtr & pc_msg,
     const sensor_msgs::msg::Image::ConstSharedPtr & depth_msg,
-    const yolov8_msgs::msg::DetectionArray::ConstSharedPtr & yolo_result_msg);
+    const yolo_msgs::msg::DetectionArray::ConstSharedPtr & yolo_result_msg);
   void extract_n_planes_callback(
     const std::shared_ptr<perception_system_interfaces::srv::ExtractNPlanes::Request> request,
     std::shared_ptr<perception_system_interfaces::srv::ExtractNPlanes::Response> response);
@@ -107,9 +107,9 @@ private:
     const cv::Size & size,
     const bool revert);
   std::vector<std::vector<cv::Point>> getCountours(
-    yolov8_msgs::msg::DetectionArray::ConstSharedPtr yolo_detection_msg);
+    yolo_msgs::msg::DetectionArray::ConstSharedPtr yolo_detection_msg);
   bool are_registered(
-    yolov8_msgs::msg::DetectionArray::ConstSharedPtr yolo_detection,
+    yolo_msgs::msg::DetectionArray::ConstSharedPtr yolo_detection,
     sensor_msgs::msg::Image::ConstSharedPtr depth_image);
 
 
@@ -120,12 +120,12 @@ private:
   message_filters::Subscriber<sensor_msgs::msg::PointCloud2,
     rclcpp_lifecycle::LifecycleNode> pc_sub_;
   message_filters::Subscriber<sensor_msgs::msg::Image, rclcpp_lifecycle::LifecycleNode> depth_sub_;
-  message_filters::Subscriber<yolov8_msgs::msg::DetectionArray,
+  message_filters::Subscriber<yolo_msgs::msg::DetectionArray,
     rclcpp_lifecycle::LifecycleNode> yolo_result_sub_;
   std::shared_ptr<message_filters::Synchronizer<ApproximateSyncPolicy>> sync_;
 
   sensor_msgs::msg::PointCloud2::ConstSharedPtr last_pc_;
-  yolov8_msgs::msg::DetectionArray::ConstSharedPtr last_yolo_;
+  yolo_msgs::msg::DetectionArray::ConstSharedPtr last_yolo_;
   sensor_msgs::msg::Image::ConstSharedPtr last_depth_image_;
 
   image_geometry::PinholeCameraModel cam_model_;
