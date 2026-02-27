@@ -25,12 +25,12 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     perception_system_dir = get_package_share_directory('perception_system')
-    yolo_dir = get_package_share_directory('yolov8_bringup')
+    yolo_dir = get_package_share_directory('yolo_bringup')
 
     model = LaunchConfiguration('model')
     model_arg = DeclareLaunchArgument(
         'model', default_value=os.path.join(perception_system_dir, 'models',
-                                            'yolov8m.pt'),
+                                            'yolom.pt'),
         description='Model name or path'
     )
 
@@ -80,7 +80,7 @@ def generate_launch_description():
         default_value="0.5",
         description="Minimum probability of a detection to be published")
 
-    yolo3d_launch = os.path.join(yolo_dir, 'launch', 'yolov8_3d.launch.py')
+    yolo3d_launch = os.path.join(yolo_dir, 'launch', 'yolo_3d.launch.py')
     yolo3d = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(yolo3d_launch),
         launch_arguments={

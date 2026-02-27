@@ -19,8 +19,8 @@
 
 #include "rclcpp/rclcpp.hpp"
 
-#include "yolov8_msgs/msg/detection_array.hpp"
-#include "yolov8_msgs/msg/key_point2_d_array.hpp"
+#include "yolo_msgs/msg/detection_array.hpp"
+#include "yolo_msgs/msg/key_point2_d_array.hpp"
 #include "perception_system_interfaces/msg/detection_array.hpp"
 
 #include "visualization_msgs/msg/marker_array.hpp"
@@ -57,9 +57,9 @@ public:
   CallbackReturnT on_error(const rclcpp_lifecycle::State & state);
 
 private:
-  void callback(const yolov8_msgs::msg::DetectionArray::ConstSharedPtr & msg);
+  void callback(const yolo_msgs::msg::DetectionArray::ConstSharedPtr & msg);
 
-  rclcpp::Subscription<yolov8_msgs::msg::DetectionArray>::SharedPtr sub_;
+  rclcpp::Subscription<yolo_msgs::msg::DetectionArray>::SharedPtr sub_;
   rclcpp_lifecycle::LifecyclePublisher<perception_system_interfaces::msg::DetectionArray>::SharedPtr
     pub_;
 

@@ -13,7 +13,7 @@
   <depend>rosidl_default_runtime</depend>
   <depend>std_msgs</depend>
   <depend>sensor_msgs</depend>
-  <depend>yolov8_msgs</depend>
+  <depend>yolo_msgs</depend>
   <depend>geometry_msgs</depend>
       
   <member_of_group>rosidl_interface_packages</member_of_group>

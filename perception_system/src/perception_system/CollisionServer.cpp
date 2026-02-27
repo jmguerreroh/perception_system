@@ -177,7 +177,7 @@ void
 CollisionServer::sync_cb(
   const sensor_msgs::msg::PointCloud2::ConstSharedPtr & pc_msg,
   const sensor_msgs::msg::Image::ConstSharedPtr & depth_msg,
-  const yolov8_msgs::msg::DetectionArray::ConstSharedPtr & yolo_result_msg)
+  const yolo_msgs::msg::DetectionArray::ConstSharedPtr & yolo_result_msg)
 {
   last_pc_ = pc_msg;
   last_depth_image_ = depth_msg;
@@ -191,7 +191,7 @@ void CollisionServer::depth_info_cb(sensor_msgs::msg::CameraInfo info_msg)
 }
 
 bool CollisionServer::are_registered(
-  yolov8_msgs::msg::DetectionArray::ConstSharedPtr yolo_detection,
+  yolo_msgs::msg::DetectionArray::ConstSharedPtr yolo_detection,
   sensor_msgs::msg::Image::ConstSharedPtr depth_image)
 {
   return yolo_detection->header.frame_id == depth_image->header.frame_id;
@@ -271,7 +271,7 @@ std::shared_ptr<cv::Mat> CollisionServer::createMask(
 }
 
 std::vector<std::vector<cv::Point>> CollisionServer::getCountours(
-  yolov8_msgs::msg::DetectionArray::ConstSharedPtr yolo_detection_msg)
+  yolo_msgs::msg::DetectionArray::ConstSharedPtr yolo_detection_msg)
 {
   std::vector<std::vector<cv::Point>> contours;
   contours.reserve(yolo_detection_msg->detections.size());
@@ -440,9 +440,9 @@ void CollisionServer::isolate_pc_classes_service_callback(
     return;
   }
   // Ensure yolo is not modified while executing the service
-  yolov8_msgs::msg::DetectionArray::ConstSharedPtr yolo_copy = last_yolo_;
+  yolo_msgs::msg::DetectionArray::ConstSharedPtr yolo_copy = last_yolo_;
 
-  yolov8_msgs::msg::DetectionArray filtered_yolo;
+  yolo_msgs::msg::DetectionArray filtered_yolo;
 
   if (request->ignore_class && !request->classes.empty()) {
     for (const auto & detection : yolo_copy->detections) {
@@ -471,7 +471,7 @@ void CollisionServer::isolate_pc_classes_service_callback(
   sensor_msgs::msg::PointCloud2 detection_cloud_msg;
 
   auto const_filtered_yolo =
-    std::make_shared<const yolov8_msgs::msg::DetectionArray>(filtered_yolo);
+    std::make_shared<const yolo_msgs::msg::DetectionArray>(filtered_yolo);
 
   detection_cloud_msg = projectCloud(
     downsampled_cloud,
@@ -513,9 +513,9 @@ void CollisionServer::isolate_pc_background_service_callback(
   }
 
   // Ensure yolo is not modified while executing the service
-  yolov8_msgs::msg::DetectionArray::ConstSharedPtr yolo_copy = last_yolo_;
+  yolo_msgs::msg::DetectionArray::ConstSharedPtr yolo_copy = last_yolo_;
 
-  yolov8_msgs::msg::DetectionArray filtered_yolo;
+  yolo_msgs::msg::DetectionArray filtered_yolo;
 
   if (request->ignore_class && !request->classes.empty()) {
     for (const auto & detection : yolo_copy->detections) {
@@ -540,16 +540,16 @@ void CollisionServer::isolate_pc_background_service_callback(
   }
 
   auto const_filtered_yolo =
-    std::make_shared<const yolov8_msgs::msg::DetectionArray>(filtered_yolo);
+    std::make_shared<const yolo_msgs::msg::DetectionArray>(filtered_yolo);
 
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr downsampled_cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
 
   downsampled_cloud = downsampleCloudMsg(last_pc_, voxel_leaf_size_);
   sensor_msgs::msg::PointCloud2 detection_cloud_msg;
   // Erotion only works on bb not on masks so far
-  yolov8_msgs::msg::DetectionArray::ConstSharedPtr eroded_yolo;
+  yolo_msgs::msg::DetectionArray::ConstSharedPtr eroded_yolo;
   eroded_yolo =
-    std::make_shared<const yolov8_msgs::msg::DetectionArray>(
+    std::make_shared<const yolo_msgs::msg::DetectionArray>(
     erodeDetections(
       const_filtered_yolo,
       erode_factor_));

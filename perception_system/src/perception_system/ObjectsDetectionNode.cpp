@@ -28,9 +28,9 @@ ObjectsDetectionNode::ObjectsDetectionNode(const rclcpp::NodeOptions & options)
   this->declare_parameter("debug", false);
 
   // Add the activation of the objects detection node
-  this->add_activation("yolov8_node");
-  this->add_activation("yolov8_detect_3d_node");
-  this->add_activation("yolov8_tracking_node");
+  this->add_activation("yolo_node");
+  this->add_activation("detect_3d_node");
+  this->add_activation("tracking_node");
 }
 
 CallbackReturnT ObjectsDetectionNode::on_configure(const rclcpp_lifecycle::State & state)
@@ -42,7 +42,7 @@ CallbackReturnT ObjectsDetectionNode::on_configure(const rclcpp_lifecycle::State
   this->get_parameter("classes", classes_);
   this->get_parameter("target_frame", frame_id_);
   if (this->get_parameter("debug").as_bool()) {
-    this->add_activation("yolov8_debug_node");
+    this->add_activation("debug_node");
   }
 
   pub_ = this->create_publisher<perception_system_interfaces::msg::DetectionArray>(
@@ -58,9 +58,9 @@ CallbackReturnT ObjectsDetectionNode::on_activate(const rclcpp_lifecycle::State 
     state.label().c_str());
 
   std::string topic_name = "detections_3d";
-  sub_ = this->create_subscription<yolov8_msgs::msg::DetectionArray>(
+  sub_ = this->create_subscription<yolo_msgs::msg::DetectionArray>(
     topic_name, 10,
-    [this](yolov8_msgs::msg::DetectionArray::ConstSharedPtr msg) {return this->callback(msg);});
+    [this](yolo_msgs::msg::DetectionArray::ConstSharedPtr msg) {return this->callback(msg);});
 
   pub_->on_activate();
 
@@ -110,7 +110,7 @@ CallbackReturnT ObjectsDetectionNode::on_error(const rclcpp_lifecycle::State & s
 }
 
 void ObjectsDetectionNode::callback(
-  const yolov8_msgs::msg::DetectionArray::ConstSharedPtr & msg)
+  const yolo_msgs::msg::DetectionArray::ConstSharedPtr & msg)
 {
   // Convert from sensor_msgs::Image to cv::Mat using cv_bridge
   cv_bridge::CvImagePtr image_rgb_ptr;

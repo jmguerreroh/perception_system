@@ -39,7 +39,7 @@
 #include <tf2_eigen/tf2_eigen.hpp>
 
 #include <opencv2/opencv.hpp>
-#include "yolov8_msgs/msg/detection_array.hpp"
+#include "yolo_msgs/msg/detection_array.hpp"
 #include "sensor_msgs/msg/point_cloud2.hpp"
 #include <vision_msgs/msg/detection3_d_array.hpp>
 #include <image_geometry/pinhole_camera_model.h>
@@ -205,7 +205,7 @@ inline cv::Point2d checkPoint(cv::Point2d point, cv::Size size)
 
 inline int64_t getUniqueIDFromDetection(
   const sensor_msgs::msg::Image & img,
-  const yolov8_msgs::msg::Detection & detection)
+  const yolo_msgs::msg::Detection & detection)
 {
   // Convert sensor_msgs::Image to cv::Mat using cv_bridge
   cv_bridge::CvImagePtr image_rgb_ptr;
@@ -296,7 +296,7 @@ inline int points_direction(double x1, double y1, double x2, double y2)
   return num;
 }
 
-inline int body_pose(yolov8_msgs::msg::KeyPoint3DArray skeleton)
+inline int body_pose(yolo_msgs::msg::KeyPoint3DArray skeleton)
 {
   geometry_msgs::msg::Point left_shoulder, left_hip, left_knee;
   geometry_msgs::msg::Point right_shoulder, right_hip, right_knee;
@@ -382,10 +382,10 @@ inline int body_pose(yolov8_msgs::msg::KeyPoint3DArray skeleton)
 
 }
 
-inline int pointing(yolov8_msgs::msg::KeyPoint2DArray skeleton)
+inline int pointing(yolo_msgs::msg::KeyPoint2DArray skeleton)
 {
-  yolov8_msgs::msg::Point2D left_elbow, left_wrist, left_hip;
-  yolov8_msgs::msg::Point2D right_elbow, right_wrist, right_hip;
+  yolo_msgs::msg::Point2D left_elbow, left_wrist, left_hip;
+  yolo_msgs::msg::Point2D right_elbow, right_wrist, right_hip;
   bool left_elbow_found = false;
   bool left_wrist_found = false;
   bool left_hip_found = false;
@@ -561,7 +561,7 @@ euclideanClusterExtraction(
 inline pcl::PointCloud<pcl::PointXYZRGB>::Ptr
 processPointsWithBbox(
   const pcl::PointCloud<pcl::PointXYZRGB>::Ptr & cloud,
-  const yolov8_msgs::msg::Detection & detection2d_msg,
+  const yolo_msgs::msg::Detection & detection2d_msg,
   const image_geometry::PinholeCameraModel & cam_model_)
 {
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr ret(new pcl::PointCloud<pcl::PointXYZRGB>());
@@ -583,7 +583,7 @@ processPointsWithBbox(
 }
 
 inline sensor_msgs::msg::Image
-maskToImageMsg(const yolov8_msgs::msg::Mask & mask_msg)
+maskToImageMsg(const yolo_msgs::msg::Mask & mask_msg)
 {
   sensor_msgs::msg::Image image_msg;
 
@@ -614,7 +614,7 @@ maskToImageMsg(const yolov8_msgs::msg::Mask & mask_msg)
 inline pcl::PointCloud<pcl::PointXYZRGB>::Ptr
 processPointsWithMask(
   const pcl::PointCloud<pcl::PointXYZRGB>::Ptr & cloud,
-  const yolov8_msgs::msg::Mask & mask_image_msg,
+  const yolo_msgs::msg::Mask & mask_image_msg,
   const image_geometry::PinholeCameraModel & cam_model_,
   bool is_inverse = false
 )
@@ -652,7 +652,7 @@ processPointsWithMask(
 inline sensor_msgs::msg::PointCloud2
 projectCloud(
   const pcl::PointCloud<pcl::PointXYZRGB>::Ptr & cloud,
-  const yolov8_msgs::msg::DetectionArray::ConstSharedPtr & yolo_result_msg,
+  const yolo_msgs::msg::DetectionArray::ConstSharedPtr & yolo_result_msg,
   const image_geometry::PinholeCameraModel & cam_model_,
   const double & cluster_tolerance_,
   const uint16_t & min_cluster_size_,
@@ -698,19 +698,19 @@ projectCloud(
   return combine_detection_cloud_msg;
 }
 
-inline yolov8_msgs::msg::DetectionArray
+inline yolo_msgs::msg::DetectionArray
 erodeDetections(
-  const yolov8_msgs::msg::DetectionArray::ConstSharedPtr & yolo_result_msg,
+  const yolo_msgs::msg::DetectionArray::ConstSharedPtr & yolo_result_msg,
   const double & erode_factor)
 {
-  yolov8_msgs::msg::DetectionArray eroded_yolo_result_msg;
+  yolo_msgs::msg::DetectionArray eroded_yolo_result_msg;
   eroded_yolo_result_msg.header = yolo_result_msg->header;
   if (erode_factor == 1.0 || erode_factor <= 0.0 || yolo_result_msg->detections.empty()) {
     return *yolo_result_msg;
   }
 
   for (size_t i = 0; i < yolo_result_msg->detections.size(); i++) {
-    yolov8_msgs::msg::Detection detection = yolo_result_msg->detections[i];
+    yolo_msgs::msg::Detection detection = yolo_result_msg->detections[i];
     detection.bbox.size.x *= erode_factor;
     detection.bbox.size.y *= erode_factor;
     eroded_yolo_result_msg.detections.push_back(detection);

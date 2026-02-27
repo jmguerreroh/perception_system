@@ -11,7 +11,7 @@
 
   <depend>rclcpp</depend>
   <depend>rclcpp_components</depend>
-  <depend>yolov8_msgs</depend>
+  <depend>yolo_msgs</depend>
   <depend>visualization_msgs</depend>
   <depend>lifecycle_msgs</depend>
   <depend>rclcpp_lifecycle</depend>
